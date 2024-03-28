@@ -10,9 +10,9 @@ endif
 COMMIT_HASH=`git rev-parse --short=8 HEAD 2>/dev/null`
 BUILD_TIME=`date +%FT%T%z`
 LDFLAGS=-ldflags "-s -w \
-	-X github.com/metskem/joeradiostats/conf.CommitHash=${COMMIT_HASH} \
-	-X github.com/metskem/joeradiostats/conf.BuildTime=${BUILD_TIME} \
-	-X github.com/metskem/joeradiostats/conf.VersionTag=${VERSION_TAG}"
+	-X github.com/metskem/rommel/joeradiostats/conf.CommitHash=${COMMIT_HASH} \
+	-X github.com/metskem/rommel/joeradiostats/conf.BuildTime=${BUILD_TIME} \
+	-X github.com/metskem/rommel/joeradiostats/conf.VersionTag=${VERSION_TAG}"
 
 all: build linux darwin arm64
 

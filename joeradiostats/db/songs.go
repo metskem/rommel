@@ -46,30 +46,37 @@ func GetSong(artist, title string) (model.Song, error) {
 	}
 }
 
-func GetTotals() (int64, int64, int64, error) {
+func GetTotals() (int64, int64, int64, int64, error) {
 	selectSQL1 := "select count(*) from song s, playmoment p where s.id=p.songid;"
 	selectSQL2 := "select count(*) from song"
 	selectSQL3 := "select count(distinct(artist)) from song;select count(*) from song s, playmoment p where s.id=p.songid;"
-	var cnt1, cnt2, cnt3 int64
+	selectSQL4 := "select count(*) from (select s.artist as artist,s.title as title,count(*) as cnt from song s, playmoment p where s.id=p.songid group by s.artist,s.title) where cnt=1;"
+	var cnt1, cnt2, cnt3, cnt4 int64
 	statement, _ := Database.Prepare(selectSQL1)
 	defer func() { _ = statement.Close() }()
 	if err := statement.QueryRow().Scan(&cnt1); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 
 	statement, _ = Database.Prepare(selectSQL2)
 	defer func() { _ = statement.Close() }()
 	if err := statement.QueryRow().Scan(&cnt2); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 
 	statement, _ = Database.Prepare(selectSQL3)
 	defer func() { _ = statement.Close() }()
 	if err := statement.QueryRow().Scan(&cnt3); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 
-	return cnt1, cnt2, cnt3, nil
+	statement, _ = Database.Prepare(selectSQL4)
+	defer func() { _ = statement.Close() }()
+	if err := statement.QueryRow().Scan(&cnt4); err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	return cnt1, cnt2, cnt3, cnt4, nil
 }
 
 func GetTopArtistsMostSongs() ([]model.ResultRow1, error) {

@@ -191,10 +191,10 @@ func handleTelegramChannel() {
 				// Totals
 				if chat.IsPrivate() && cmdMe && update.Message.Text == "/totals" {
 					log.Printf("totals requested, chatid: %d, chat: %s (%s %s)\n", chat.ID, chat.UserName, chat.FirstName, chat.LastName)
-					if cnt1, cnt2, cnt3, err := db.GetTotals(); err != nil {
+					if cnt1, cnt2, cnt3, cnt4, err := db.GetTotals(); err != nil {
 						log.Printf("failed getting totals: %v", err)
 					} else {
-						msg := fmt.Sprintf("Total songs played: %d\nTotal unique songs: %d\nTotal unique artists: %d\n", cnt1, cnt2, cnt3)
+						msg := fmt.Sprintf("Total songs played: %d\nTotal unique songs: %d\nTotal unique artists: %d\nSongs played once: %d\n", cnt1, cnt2, cnt3, cnt4)
 						if _, err = util.Bot.Send(tgbotapi.MessageConfig{BaseChat: tgbotapi.BaseChat{ChatID: chat.ID, ReplyToMessageID: 0}, Text: msg, DisableWebPagePreview: true}); err != nil {
 							log.Printf("failed sending message to chat %d, error is %v", chat.ID, err)
 						}

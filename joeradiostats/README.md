@@ -9,7 +9,7 @@ It has a Telegram Bot as well, so you can interact with it.
 topartistsmostsongs - Top 10 artists with most songs played  
 topartistsmostoftenplayed - Top 10 artists most often played  
 topduplicates - Get top 20 songs played multiple times  
-totals - Totals (songs, artists, playmoments)
+totals - Totals (songs, artists, playmoments, songs played once)
 
 ## Environment variables
 

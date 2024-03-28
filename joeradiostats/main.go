@@ -26,7 +26,7 @@ func main() {
 	db.Initdb()
 
 	if service, err := selenium.NewChromeDriverService(conf.ChromeDriverPath, 4444); err != nil {
-		log.Fatal("Error:", err)
+		log.Fatal("Failed to selenium.NewChromeDriverService:", err)
 	} else {
 		defer func() { _ = service.Stop() }()
 		prefs := make(map[string]interface{})
@@ -36,10 +36,10 @@ func main() {
 
 		var driver selenium.WebDriver
 		if driver, err = selenium.NewRemote(caps, ""); err != nil {
-			log.Fatal("Error:", err)
+			log.Fatal("Failed to selenium.NewRemote:", err)
 		}
 		if err = driver.Get(joeURL); err != nil {
-			log.Fatal("Error:", err)
+			log.Fatal("Failed to driver.Get:", err)
 		}
 
 		time.Sleep(2 * time.Second)

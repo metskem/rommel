@@ -10,8 +10,8 @@ require (
 
 require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/mediabuyerbot/go-crx3 v1.3.1 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	google.golang.org/protobuf v1.26.0-rc.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )

@@ -80,7 +80,7 @@ func GetTopArtistsMostSongs() ([]model.ResultRow1, error) {
 	if rows, err = Database.Query(queryString, nil); err != nil {
 		return nil, err
 	} else if rows == nil {
-		return nil, errors.New("rows object was nil from GetTop10ArtistsMostSongs")
+		return nil, errors.New("rows object was nil from GetTopArtistsMostSongs")
 	} else {
 		defer func() { _ = rows.Close() }()
 		for rows.Next() {
@@ -104,7 +104,7 @@ func GetTopArtistsMostOftenPlayed() ([]model.ResultRow1, error) {
 	if rows, err = Database.Query(queryString, nil); err != nil {
 		return nil, err
 	} else if rows == nil {
-		return nil, errors.New("rows object was nil from GetTop10ArtistsMostOftenPlayed")
+		return nil, errors.New("rows object was nil from GetTopArtistsMostOftenPlayed")
 	} else {
 		defer func() { _ = rows.Close() }()
 		for rows.Next() {

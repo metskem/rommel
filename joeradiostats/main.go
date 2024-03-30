@@ -146,7 +146,7 @@ func handleTelegramChannel() {
 					if top, err := db.GetTopArtistsMostSongs(); err != nil {
 						log.Printf("failed getting topartistsmostsongs: %v", err)
 					} else {
-						msg := "Top 10 artists with most songs:\n"
+						msg := "Top 20 artists with most songs:\n"
 						for _, row := range top {
 							msg += fmt.Sprintf("%d: %s\n", row.Count, row.Artist)
 						}
@@ -156,13 +156,13 @@ func handleTelegramChannel() {
 					}
 				}
 
-				// Top 10 artists most often played
+				// Top artists most often played
 				if chat.IsPrivate() && cmdMe && update.Message.Text == "/topartistsmostoftenplayed" {
 					log.Printf("topartistsmostoftenplayed requested, chatid: %d, chat: %s (%s %s)\n", chat.ID, chat.UserName, chat.FirstName, chat.LastName)
 					if top, err := db.GetTopArtistsMostOftenPlayed(); err != nil {
 						log.Printf("failed getting topartistsmostoftenplayed: %v", err)
 					} else {
-						msg := "Top 10 artists most often played:\n"
+						msg := "Top 20 artists most often played:\n"
 						for _, row := range top {
 							msg += fmt.Sprintf("%d: %s\n", row.Count, row.Artist)
 						}

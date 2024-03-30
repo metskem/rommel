@@ -83,7 +83,7 @@ func GetTopArtistsMostSongs() ([]model.ResultRow1, error) {
 	var err error
 	var rows *sql.Rows
 	var result []model.ResultRow1
-	queryString := "select artist,count(*) from song group by artist order by 2 desc,1 limit 10"
+	queryString := "select artist,count(*) from song group by artist order by 2 desc,1 limit 20"
 	if rows, err = Database.Query(queryString, nil); err != nil {
 		return nil, err
 	} else if rows == nil {
@@ -107,7 +107,7 @@ func GetTopArtistsMostOftenPlayed() ([]model.ResultRow1, error) {
 	var err error
 	var rows *sql.Rows
 	var result []model.ResultRow1
-	queryString := "select s.artist,count(*) from song s, playmoment p where s.id=p.songid group by artist order by 2 desc,1 limit 10"
+	queryString := "select s.artist,count(*) from song s, playmoment p where s.id=p.songid group by artist order by 2 desc,1 limit 20"
 	if rows, err = Database.Query(queryString, nil); err != nil {
 		return nil, err
 	} else if rows == nil {

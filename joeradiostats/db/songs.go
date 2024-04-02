@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/metskem/rommel/joeradiostats/model"
 	"log"
 	"time"
@@ -98,6 +99,30 @@ func GetTopArtistsMostSongs() ([]model.ResultRow1, error) {
 				log.Printf("error while scanning table: %s", err)
 			}
 			result = append(result, model.ResultRow1{Artist: artist, Count: count})
+		}
+	}
+	return result, err
+}
+
+func GetPlayMomentsForTitle(title string) ([]model.ResultRow3, error) {
+	var err error
+	var rows *sql.Rows
+	var result []model.ResultRow3
+	queryString := fmt.Sprintf("select s.artist,p.timestamp from song s,playmoment p where s.id=p.songid and lower(title)=lower(\"%s\") order by 1;", title)
+	if rows, err = Database.Query(queryString, nil); err != nil {
+		return nil, err
+	} else if rows == nil {
+		return nil, errors.New("rows object was nil from GetPlayMomentsForTitle")
+	} else {
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var artist string
+			var playmoment time.Time
+			err = rows.Scan(&artist, &playmoment)
+			if err != nil {
+				log.Printf("error while scanning table: %s", err)
+			}
+			result = append(result, model.ResultRow3{Artist: artist, PlayMoment: playmoment})
 		}
 	}
 	return result, err

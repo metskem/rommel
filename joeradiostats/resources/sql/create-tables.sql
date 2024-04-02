@@ -3,7 +3,7 @@ create table song
 (
     id     integer   not null primary key,
     artist char(128) not null,
-    title  char(128) not null,
+    title  char(128) not null
 );
 
 drop table if exists playmoment;

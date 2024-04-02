@@ -9,7 +9,8 @@ It has a Telegram Bot as well, so you can interact with it.
 totals - Totals (songs, artists, playmoments, songs played once)
 topartistsmostsongs - Top 20 artists with most songs played  
 topartistsmostoftenplayed - Top 20 artists most often played  
-topduplicates - Get top 20 songs played multiple times  
+topduplicates - Get top 20 songs played multiple times
+playmoments4title - Get playmoments for a title, specify title as parameter (case insensitive)
 
 ## Environment variables
 

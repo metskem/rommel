@@ -25,3 +25,8 @@ type ResultRow2 struct {
 	Title  string
 	Count  int
 }
+
+type ResultRow3 struct {
+	Artist     string
+	PlayMoment time.Time
+}

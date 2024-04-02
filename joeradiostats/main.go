@@ -188,6 +188,23 @@ func handleTelegramChannel() {
 					}
 				}
 
+				// PlayMomentsForTitle
+				if chat.IsPrivate() && cmdMe && strings.HasPrefix(update.Message.Text, "/playmoments4title") {
+					title := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, "/playmoments4title"))
+					log.Printf("PlayMomentsForTitle %s requested, chatid: %d, chat: %s (%s %s)\n", title, chat.ID, chat.UserName, chat.FirstName, chat.LastName)
+					if pms, err := db.GetPlayMomentsForTitle(title); err != nil {
+						log.Printf("failed getting PlayMomentsForTitle: %v", err)
+					} else {
+						msg := fmt.Sprintf("Playmoments for title %s: %d rows\n", title, len(pms))
+						for _, row := range pms {
+							msg += fmt.Sprintf("%s | %s\n", row.Artist, row.PlayMoment.Format(time.RFC3339))
+						}
+						if _, err = util.Bot.Send(tgbotapi.MessageConfig{BaseChat: tgbotapi.BaseChat{ChatID: chat.ID, ReplyToMessageID: 0}, Text: msg, DisableWebPagePreview: true}); err != nil {
+							log.Printf("failed sending message to chat %d, error is %v", chat.ID, err)
+						}
+					}
+				}
+
 				// Totals
 				if chat.IsPrivate() && cmdMe && update.Message.Text == "/totals" {
 					log.Printf("totals requested, chatid: %d, chat: %s (%s %s)\n", chat.ID, chat.UserName, chat.FirstName, chat.LastName)

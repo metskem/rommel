@@ -28,7 +28,7 @@ func InsertPlayMoment(songId int64) int64 {
 }
 
 func GetFirstPlayMoment() (time.Time, error) {
-	selectSQL := "select timestamp from playmoment order by 1 limit 1;"
+	selectSQL := "select min(timestamp) from playmoment;"
 	var ts time.Time
 	statement, _ := Database.Prepare(selectSQL)
 	defer func() { _ = statement.Close() }()

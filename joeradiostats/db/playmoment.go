@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"time"
 )
 
 // InsertPlayMoment - Insert a row into the playmoment table. Returns the lastInsertId of the insert operation. */
@@ -24,4 +25,13 @@ func InsertPlayMoment(songId int64) int64 {
 			}
 		}
 	}
+}
+
+func GetFirstPlayMoment() (time.Time, error) {
+	selectSQL := "select timestamp from playmoment order by 1 limit 1;"
+	var ts time.Time
+	statement, _ := Database.Prepare(selectSQL)
+	defer func() { _ = statement.Close() }()
+	err := statement.QueryRow().Scan(&ts)
+	return ts, err
 }

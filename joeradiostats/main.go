@@ -211,9 +211,13 @@ func handleTelegramChannel() {
 					if cnt1, cnt2, cnt3, cnt4, err := db.GetTotals(); err != nil {
 						log.Printf("failed getting totals: %v", err)
 					} else {
-						msg := fmt.Sprintf("Total songs played: %d\nTotal unique songs: %d\nTotal unique artists: %d\nSongs played once: %d\n", cnt1, cnt2, cnt3, cnt4)
-						if _, err = util.Bot.Send(tgbotapi.MessageConfig{BaseChat: tgbotapi.BaseChat{ChatID: chat.ID, ReplyToMessageID: 0}, Text: msg, DisableWebPagePreview: true}); err != nil {
-							log.Printf("failed sending message to chat %d, error is %v", chat.ID, err)
+						if firstPlay, err := db.GetFirstPlayMoment(); err != nil {
+							log.Printf("failed getting first playmoment: %v", err)
+						} else {
+							msg := fmt.Sprintf("Total songs played: %d\nTotal unique songs: %d\nTotal unique artists: %d\nSongs played once: %d\nTotal RunTime: %s", cnt1, cnt2, cnt3, cnt4, getFormattedTimeSince(firstPlay))
+							if _, err = util.Bot.Send(tgbotapi.MessageConfig{BaseChat: tgbotapi.BaseChat{ChatID: chat.ID, ReplyToMessageID: 0}, Text: msg, DisableWebPagePreview: true}); err != nil {
+								log.Printf("failed sending message to chat %d, error is %v", chat.ID, err)
+							}
 						}
 					}
 				}
@@ -224,6 +228,25 @@ func handleTelegramChannel() {
 	} else {
 		log.Printf("failed getting Bot updatesChannel, error: %v", err)
 		os.Exit(8)
+	}
+}
+
+func getFormattedTimeSince(ts time.Time) any {
+	runTime := time.Now().Unix() - ts.Unix()
+	days := runTime / 86400
+	secsLeft := runTime % 86400
+	hours := secsLeft / 3600
+	secsLeft = secsLeft % 3600
+	mins := secsLeft / 60
+	secs := secsLeft % 60
+	if days > 0 {
+		return fmt.Sprintf("%dd%02dh%02dm%02ds", days, hours, mins, secs)
+	} else if hours > 0 {
+		return fmt.Sprintf("%dh%02dm%02ds", hours, mins, secs)
+	} else if mins > 0 {
+		return fmt.Sprintf("%dm%02ds", mins, secs)
+	} else {
+		return fmt.Sprintf("%ds", secs)
 	}
 }
 

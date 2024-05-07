@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/cloudfoundry-community/go-cfclient/v3/config"
 	"github.com/cloudfoundry-incubator/uaago"
+	"github.com/cloudfoundry/go-cfclient/v3/config"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/metskem/rommel/SkewnessDetector/conf"
@@ -39,15 +40,11 @@ func (t *tokenRefresher) RefreshAuthToken() (string, error) {
 
 func setCFConfig() {
 	var err error
-	if CF1CfConfig, err = config.NewClientSecret(conf.CF1API, conf.CF1User, conf.CF1Password); err != nil {
+	if CF1CfConfig, err = config.New(conf.CF1API, config.SkipTLSValidation(), config.ClientCredentials(conf.CF1User, conf.CF1Password)); err != nil {
 		log.Fatalf("failed to create new config: %s", err)
-	} else {
-		CF1CfConfig.WithSkipTLSValidation(true)
 	}
-	if CF2CfConfig, err = config.NewClientSecret(conf.CF2API, conf.CF2User, conf.CF2Password); err != nil {
+	if CF2CfConfig, err = config.New(conf.CF2API, config.SkipTLSValidation(), config.ClientCredentials(conf.CF2User, conf.CF2Password)); err != nil {
 		log.Fatalf("failed to create new config: %s", err)
-	} else {
-		CF2CfConfig.WithSkipTLSValidation(true)
 	}
 	return
 }
@@ -107,17 +104,24 @@ func suckFirehose(cfConfig *config.Config, api, user, password string, counter *
 	refresher.user = user
 	refresher.password = password
 	cons.RefreshTokenFrom(&refresher)
-	firehoseChan, errorChan := cons.Firehose("StatsNozzle", cfConfig.AccessToken)
+	if tokenSource, err := cfConfig.CreateOAuth2TokenSource(context.Background()); err != nil {
+		log.Fatalf("failed to create token source: %s", err)
+	} else {
+		if tok, err := tokenSource.Token(); err != nil {
+			log.Fatalf("failed to get toke from token source: %s", err)
+		} else {
+			firehoseChan, errorChan := cons.Firehose("StatsNozzle", tok.AccessToken)
+			go func() {
+				for err := range errorChan {
+					log.Printf("%v\n", err.Error())
+				}
+			}()
 
-	go func() {
-		for err := range errorChan {
-			log.Printf("%v\n", err.Error())
-		}
-	}()
-
-	for msg := range firehoseChan {
-		if msg.GetEventType() == events.Envelope_HttpStartStop {
-			*counter++
+			for msg := range firehoseChan {
+				if msg.GetEventType() == events.Envelope_HttpStartStop {
+					*counter++
+				}
+			}
 		}
 	}
 }

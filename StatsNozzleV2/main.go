@@ -24,12 +24,6 @@ var (
 )
 
 func main() {
-	log.SetOutput(os.Stdout)
-	log.SetPrefix("")
-	logErr := log.New(os.Stderr, "", 0)
-	logErr.SetOutput(os.Stderr)
-	logErr.SetPrefix("")
-
 	if !conf.EnvironmentComplete() {
 		os.Exit(8)
 	}
@@ -38,13 +32,13 @@ func main() {
 
 	go func() {
 		for err := range errorChan {
-			logErr.Printf("from errorChannel: %s\n", err.Error())
+			log.Printf("from errorChannel: %s\n", err.Error())
 		}
 	}()
 
 	uaa, err := uaago.NewClient(strings.Replace(conf.ApiAddr, "api.sys", "uaa.sys", 1))
 	if err != nil {
-		logErr.Printf("error while getting uaaClient %s\n", err)
+		log.Printf("error while getting uaaClient %s\n", err)
 		os.Exit(1)
 	}
 
@@ -70,8 +64,9 @@ func main() {
 	envelopeStream := c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
 
 	go func() {
-		for count := 0; count < 20000; count++ {
+		for {
 			for _, envelope := range envelopeStream() {
+				conf.TotalEnvelopes++
 				orgName := envelope.Tags[conf.TagOrgName]
 				if orgName != "" {
 					spaceName := envelope.Tags[conf.TagSpaceName]
@@ -97,6 +92,7 @@ func main() {
 					metricValues.AppIndex = index
 					metricValues.SpaceName = spaceName
 					metricValues.OrgName = orgName
+					metricValues.CpuTot = metricValues.CpuTot + metricValues.Values[conf.MetricCpu]
 					conf.MetricMap[key] = metricValues
 					conf.MapLock.Unlock()
 				}

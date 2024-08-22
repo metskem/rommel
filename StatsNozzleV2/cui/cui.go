@@ -12,10 +12,12 @@ import (
 
 var (
 	mainView     *gocui.View
+	summaryView  *gocui.View
 	g            *gocui.Gui
 	appNameColor = conf.ColorWhite
 	ageColor     = conf.ColorWhite
-	cpuColor     = conf.ColorWhite
+	cpuPercColor = conf.ColorWhite
+	cpuTotColor  = conf.ColorWhite
 	memoryColor  = conf.ColorWhite
 	diskColor    = conf.ColorWhite
 	logRateColor = conf.ColorWhite
@@ -35,17 +37,13 @@ func Start() {
 	g.SetManagerFunc(layout)
 
 	_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit)
+	_ = g.SetKeybinding("", 'q', gocui.ModNone, quit)
 	_ = g.SetKeybinding("", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = g.SetKeybinding("", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, arrowDownOrUp)
 	_ = g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, arrowDownOrUp)
-	_ = g.SetKeybinding("", 'n', gocui.ModNone, sortByAppName)
-	_ = g.SetKeybinding("", 'a', gocui.ModNone, sortByAge)
-	_ = g.SetKeybinding("", 'c', gocui.ModNone, sortByCpu)
-	_ = g.SetKeybinding("", 'o', gocui.ModNone, sortByMemory)
-	_ = g.SetKeybinding("", 'm', gocui.ModNone, sortByLogRate)
-	_ = g.SetKeybinding("", 'd', gocui.ModNone, sortByDisk)
-	_ = g.SetKeybinding("", 'e', gocui.ModNone, sortByEntitlement)
+
+	colorSortedColumn()
 
 	go func() {
 		for {
@@ -64,36 +62,44 @@ func Start() {
 
 func layout(g *gocui.Gui) (err error) {
 	maxX, maxY := g.Size()
-	if mainView, err = g.SetView("ApplicationView", 0, 0, maxX*9/10, maxY*9/10); err != nil {
+	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		mainView.Title = "Application View"
-		//mainView.Autoscroll = true
-		//mainView.Editable = true
+		summaryView.Title = "Summary"
+	}
+	if mainView, err = g.SetView("ApplicationView", 0, 5, maxX-1, maxY-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		mainView.Title = "Application Instances"
 	}
 	return nil
 }
 
 func refreshViewContent() {
+	//maxX, maxY := g.Size()
+
+	summaryView.Clear()
+	_, _ = fmt.Fprintf(summaryView, "Target: %s\nTotal events: %d\nTotal App Instances: %d", conf.ApiAddr, conf.TotalEnvelopes, len(conf.MetricMap))
+
 	mainView.Clear()
-	maxX, maxY := g.Size()
-	if err := mainView.SetCursor(maxX/2-maxX/4, maxY/2-maxY/4); err != nil {
-		util.WriteToFile("Error setting cursor: " + err.Error())
-	}
-	//yellow := color.New(color.Bold, color.FgYellow).SprintFunc()
-	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %15s %10s %6s %8s %6s %9s %-20s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "AGE", "CPU", "MEMORY", "DISK", "LOGRATE", "CPU_ENT", "ORG", "SPACE", conf.ColorReset))
+	//if err := mainView.SetCursor(maxX/2-maxX/4, maxY/2-maxY/4); err != nil {
+	//	util.WriteToFile("Error setting cursor: " + err.Error())
+	//}
+	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %15s %10s %12s %6s %8s %6s %9s %-20s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "AGE", "CPU%", "CPUTOT", "MEMORY", "DISK", "LOGRATE", "CPU_ENT", "ORG", "SPACE", conf.ColorReset))
 	conf.MapLock.Lock()
 
 	for _, pairlist := range util.SortedBy(conf.MetricMap, util.ActiveSortDirection, util.ActiveSortField) {
-		_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%12s%s %s%10.f%s %s%6s%s %s%8s%s %s%7s%s %s%9.f%s %s%-20s%s %s%-35s%s\n",
+		_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%12s%s %s%10s%s %s%12s%s %s%6s%s %s%8s%s %s%7s%s %s%9s%s %s%-20s%s %s%-35s%s\n",
 			appNameColor, pairlist.Value.AppName+"/"+pairlist.Value.AppIndex, conf.ColorReset,
 			ageColor, util.GetFormattedElapsedTime(pairlist.Value.Values["container_age"]), conf.ColorReset,
-			cpuColor, pairlist.Value.Values["cpu"], conf.ColorReset,
+			cpuPercColor, util.GetFormattedUnit(pairlist.Value.Values["cpu"]), conf.ColorReset,
+			cpuTotColor, util.GetFormattedUnit(pairlist.Value.CpuTot), conf.ColorReset,
 			memoryColor, util.GetFormattedUnit(pairlist.Value.Values["memory"]), conf.ColorReset,
 			diskColor, util.GetFormattedUnit(pairlist.Value.Values["disk"]), conf.ColorReset,
 			logRateColor, util.GetFormattedUnit(pairlist.Value.Values["log_rate"]), conf.ColorReset,
-			entColor, pairlist.Value.Values["cpu_entitlement"], conf.ColorReset,
+			entColor, util.GetFormattedUnit(pairlist.Value.Values["cpu_entitlement"]), conf.ColorReset,
 			orgColor, pairlist.Value.OrgName, conf.ColorReset,
 			spaceColor, pairlist.Value.SpaceName, conf.ColorReset)
 	}
@@ -104,58 +110,6 @@ func refreshViewContent() {
 func quit(g *gocui.Gui, v *gocui.View) error {
 	os.Exit(0)
 	return gocui.ErrQuit
-}
-func sortByAge(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByAge {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByAge
-	return nil
-}
-func sortByAppName(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByAppName {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByAge
-	//appNameColor = color.New(color.FgBlue).SprintFunc()
-	return nil
-}
-func sortByCpu(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByCpu {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByCpu
-	cpuColor = conf.ColorBlue
-	util.WriteToFile("Sorting by CPU")
-	return nil
-}
-func sortByMemory(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByMemory {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByMemory
-	return nil
-}
-func sortByDisk(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByDisk {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByDisk
-	return nil
-}
-func sortByLogRate(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByLogRate {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByLogRate
-	return nil
-}
-func sortByEntitlement(g *gocui.Gui, v *gocui.View) error {
-	if util.ActiveSortField == util.SortByEntitlement {
-		flipSortOrder()
-	}
-	util.ActiveSortField = util.SortByEntitlement
-	return nil
 }
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	if util.ActiveSortField != util.SortBySpace {
@@ -187,7 +141,8 @@ func flipSortOrder() {
 func colorSortedColumn() {
 	appNameColor = conf.ColorWhite
 	ageColor = conf.ColorWhite
-	cpuColor = conf.ColorWhite
+	cpuPercColor = conf.ColorWhite
+	cpuTotColor = conf.ColorWhite
 	memoryColor = conf.ColorWhite
 	diskColor = conf.ColorWhite
 	logRateColor = conf.ColorWhite
@@ -199,8 +154,10 @@ func colorSortedColumn() {
 		appNameColor = conf.ColorBlue
 	case util.SortByAge:
 		ageColor = conf.ColorBlue
-	case util.SortByCpu:
-		cpuColor = conf.ColorBlue
+	case util.SortByCpuPerc:
+		cpuPercColor = conf.ColorBlue
+	case util.SortByCpuTot:
+		cpuTotColor = conf.ColorBlue
 	case util.SortByMemory:
 		memoryColor = conf.ColorBlue
 	case util.SortByDisk:

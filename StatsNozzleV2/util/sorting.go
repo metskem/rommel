@@ -11,7 +11,8 @@ type SortField int
 const (
 	SortByAppName = iota
 	SortByAge
-	SortByCpu
+	SortByCpuPerc
+	SortByCpuTot
 	SortByMemory
 	SortByDisk
 	SortByLogRate
@@ -21,7 +22,7 @@ const (
 )
 
 var (
-	ActiveSortField     SortField = SortByCpu
+	ActiveSortField     SortField = SortByCpuPerc
 	ActiveSortDirection           = true
 )
 
@@ -54,8 +55,10 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.AppName < p[j].Value.AppName
 	case SortByAge:
 		return p[i].Value.Values[conf.MetricAge] < p[j].Value.Values[conf.MetricAge]
-	case SortByCpu:
+	case SortByCpuPerc:
 		return p[i].Value.Values[conf.MetricCpu] < p[j].Value.Values[conf.MetricCpu]
+	case SortByCpuTot:
+		return p[i].Value.CpuTot < p[j].Value.CpuTot
 	case SortByMemory:
 		return p[i].Value.Values[conf.MetricMemory] < p[j].Value.Values[conf.MetricMemory]
 	case SortByDisk:

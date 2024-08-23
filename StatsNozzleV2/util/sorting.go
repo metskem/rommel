@@ -17,6 +17,8 @@ const (
 	SortByDisk
 	SortByLogRate
 	SortByEntitlement
+	SortByLogRep
+	SortByLogRtr
 	SortByOrg
 	SortBySpace
 )
@@ -67,6 +69,10 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Values[conf.MetricCpuEntitlement] < p[j].Value.Values[conf.MetricCpuEntitlement]
 	case SortByLogRate:
 		return p[i].Value.Values[conf.MetricLogRate] < p[j].Value.Values[conf.MetricLogRate]
+	case SortByLogRep:
+		return p[i].Value.LogRep < p[j].Value.LogRep
+	case SortByLogRtr:
+		return p[i].Value.LogRtr < p[j].Value.LogRtr
 	case SortByOrg:
 		return p[i].Value.OrgName < p[j].Value.OrgName
 	case SortBySpace:

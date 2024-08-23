@@ -12,6 +12,9 @@ const (
 	TagOrgName           = "organization_name"
 	TagSpaceName         = "space_name"
 	TagAppName           = "app_name"
+	TagOrigin            = "origin"
+	TagOriginValueRep    = "rep"
+	TagOriginValueRtr    = "gorouter"
 	ColorReset           = "\033[0m"
 	ColorYellow          = "\033[33m"
 	ColorBlue            = "\033[34m"
@@ -31,5 +34,7 @@ type Metric struct {
 	SpaceName string
 	OrgName   string
 	CpuTot    float64
+	LogRtr    float64
+	LogRep    float64
 	Values    map[string]float64
 }

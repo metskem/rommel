@@ -23,7 +23,7 @@ func GetFormattedUnit(unitValue float64) string {
 	}
 }
 
-// GetFormattedElapsedTime - Transform the input (time in seconds) to a string with number of days, hours, mins and secs, like "1d01h54m10s" */
+// GetFormattedElapsedTime - Transform the input (time in nanoseconds) to a string with number of days, hours, mins and secs, like "1d01h54m10s" */
 func GetFormattedElapsedTime(timeInNanoSecs float64) string {
 	if timeInNanoSecs == 0 {
 		return "-"

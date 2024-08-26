@@ -14,9 +14,12 @@ const (
 	SortByCpuPerc
 	SortByCpuTot
 	SortByMemory
+	SortByMemoryLimit
 	SortByDisk
 	SortByLogRate
+	SortByLogRateLimit
 	SortByEntitlement
+	SortByIP
 	SortByLogRep
 	SortByLogRtr
 	SortByOrg
@@ -63,12 +66,18 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.CpuTot < p[j].Value.CpuTot
 	case SortByMemory:
 		return p[i].Value.Values[conf.MetricMemory] < p[j].Value.Values[conf.MetricMemory]
+	case SortByMemoryLimit:
+		return p[i].Value.Values[conf.MetricMemoryQuota] < p[j].Value.Values[conf.MetricMemoryQuota]
 	case SortByDisk:
 		return p[i].Value.Values[conf.MetricDisk] < p[j].Value.Values[conf.MetricDisk]
 	case SortByEntitlement:
 		return p[i].Value.Values[conf.MetricCpuEntitlement] < p[j].Value.Values[conf.MetricCpuEntitlement]
+	case SortByIP:
+		return p[i].Value.IP < p[j].Value.IP
 	case SortByLogRate:
 		return p[i].Value.Values[conf.MetricLogRate] < p[j].Value.Values[conf.MetricLogRate]
+	case SortByLogRateLimit:
+		return p[i].Value.Values[conf.MetricLogRateLimit] < p[j].Value.Values[conf.MetricLogRateLimit]
 	case SortByLogRep:
 		return p[i].Value.LogRep < p[j].Value.LogRep
 	case SortByLogRtr:

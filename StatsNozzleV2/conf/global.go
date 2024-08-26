@@ -1,6 +1,9 @@
 package conf
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 const (
 	MetricCpu            = "cpu"
@@ -8,10 +11,13 @@ const (
 	MetricCpuEntitlement = "cpu_entitlement"
 	MetricDisk           = "disk"
 	MetricMemory         = "memory"
+	MetricMemoryQuota    = "memory_quota"
 	MetricLogRate        = "log_rate"
+	MetricLogRateLimit   = "log_rate_limit"
 	TagOrgName           = "organization_name"
 	TagSpaceName         = "space_name"
 	TagAppName           = "app_name"
+	TagAppId             = "app_id"
 	TagOrigin            = "origin"
 	TagOriginValueRep    = "rep"
 	TagOriginValueRtr    = "gorouter"
@@ -23,15 +29,18 @@ const (
 
 var (
 	MapLock           sync.Mutex
-	MetricNames       = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricLogRate}
+	MetricNames       = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
 	MetricMap         = make(map[string]Metric) // map key is app-guid/index
 	TotalEnvelopes    int
 	TotalEnvelopesRep int
 	TotalEnvelopesRtr int
+	TotalApps         = make(map[string]bool)
 	ShowFilter        = false
+	StartTime         = time.Now()
 )
 
 type Metric struct {
+	LastSeen  time.Time
 	AppIndex  string
 	AppName   string
 	SpaceName string
@@ -39,5 +48,6 @@ type Metric struct {
 	CpuTot    float64
 	LogRtr    float64
 	LogRep    float64
+	IP        string
 	Values    map[string]float64
 }

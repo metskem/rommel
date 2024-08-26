@@ -5,9 +5,11 @@ import (
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"github.com/cloudfoundry-incubator/uaago"
 	"github.com/metskem/rommel/StatsNozzleV2/conf"
 	"github.com/metskem/rommel/StatsNozzleV2/cui"
+	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -72,35 +74,36 @@ func main() {
 				spaceName := envelope.Tags[conf.TagSpaceName]
 				appName := envelope.Tags[conf.TagAppName]
 				index := envelope.InstanceId
-				appguid := envelope.SourceId
+				appguid := envelope.Tags[conf.TagAppId]
 				key := appguid + "/" + index
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
 					if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep || envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
 						// if key not in metricMap, add it
 						conf.MapLock.Lock()
 						metricValues, ok := conf.MetricMap[key]
-						if !ok {
-							metricValues.Values = make(map[string]float64)
+						if ok {
+							if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
+								metricValues.LogRep++
+								conf.TotalEnvelopesRep++
+							}
+							if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
+								metricValues.LogRtr++
+								conf.TotalEnvelopesRtr++
+							}
+							metricValues.AppName = appName
+							metricValues.AppIndex = index
+							metricValues.SpaceName = spaceName
+							metricValues.OrgName = orgName
+							metricValues.LastSeen = time.Now()
+							metricValues.IP = envelope.GetTags()["ip"]
 							conf.MetricMap[key] = metricValues
 						}
-						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
-							metricValues.LogRep++
-							conf.TotalEnvelopesRep++
-						}
-						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
-							metricValues.LogRtr++
-							conf.TotalEnvelopesRtr++
-						}
-						metricValues.AppName = appName
-						metricValues.AppIndex = index
-						metricValues.SpaceName = spaceName
-						metricValues.OrgName = orgName
-						conf.MetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}
 				if gauge := envelope.GetGauge(); gauge != nil {
 					if orgName != "" {
+						conf.TotalApps[appguid] = true // just count the apps (not instances)
 						metrics := gauge.GetMetrics()
 						// if key not in metricMap, add it
 						conf.MapLock.Lock()
@@ -119,12 +122,31 @@ func main() {
 						metricValues.AppIndex = index
 						metricValues.SpaceName = spaceName
 						metricValues.OrgName = orgName
+						metricValues.LastSeen = time.Now()
+						metricValues.IP = envelope.GetTags()["ip"]
 						metricValues.CpuTot = metricValues.CpuTot + metricValues.Values[conf.MetricCpu]
 						conf.MetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}
 			}
+		}
+	}()
+
+	// start up the routine that cleans up the metrics map (apps that haven't been seen for a while are removed)
+	go func() {
+		for _ = range time.NewTicker(1 * time.Minute).C {
+			conf.MapLock.Lock()
+			var deleted = 0
+			for key, metricValues := range conf.MetricMap {
+				if time.Since(metricValues.LastSeen) > 5*time.Minute {
+					delete(conf.MetricMap, key)
+					delete(conf.TotalApps, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
+					deleted++
+				}
+			}
+			util.WriteToFile(fmt.Sprintf("Removed %d apps from metricMap", deleted))
+			conf.MapLock.Unlock()
 		}
 	}()
 

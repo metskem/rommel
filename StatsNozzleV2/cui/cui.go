@@ -13,6 +13,7 @@ import (
 var (
 	mainView     *gocui.View
 	summaryView  *gocui.View
+	filterView   *gocui.View
 	g            *gocui.Gui
 	appNameColor = conf.ColorWhite
 	ageColor     = conf.ColorWhite
@@ -40,11 +41,18 @@ func Start() {
 	g.InputEsc = true
 
 	//_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit)
-	_ = g.SetKeybinding("", 'q', gocui.ModNone, quit)
-	_ = g.SetKeybinding("", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
-	_ = g.SetKeybinding("", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
-	_ = g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, arrowDownOrUp)
-	_ = g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, arrowDownOrUp)
+	_ = g.SetKeybinding("ApplicationView", 'q', gocui.ModNone, quit)
+	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
+	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
+	_ = g.SetKeybinding("ApplicationView", gocui.KeySpace, gocui.ModNone, spacePressed)
+	_ = g.SetKeybinding("ApplicationView", 'f', gocui.ModNone, getFilter)
+	_ = g.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		util.WriteToFile("Enter pressed in filterView")
+		conf.ShowFilter = false
+		return nil
+	})
+	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, -1) })
+	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, 1) })
 
 	colorSortedColumn()
 
@@ -69,13 +77,26 @@ func layout(g *gocui.Gui) (err error) {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		summaryView.Title = "Summary"
+		v, _ := g.SetCurrentView("SummaryView")
+		v.Title = "Summary"
 	}
 	if mainView, err = g.SetView("ApplicationView", 0, 5, maxX-1, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		mainView.Title = "Application Instances"
+		v, _ := g.SetCurrentView("ApplicationView")
+		v.Title = "Application Instances"
+	}
+	if conf.ShowFilter {
+		if filterView, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v, _ := g.SetCurrentView("FilterView")
+			v.Title = "Filter"
+			v.Editable = true
+			_, _ = fmt.Fprintln(v, "Filter by:")
+		}
 	}
 	return nil
 }
@@ -84,7 +105,7 @@ func refreshViewContent() {
 	//maxX, maxY := g.Size()
 
 	summaryView.Clear()
-	_, _ = fmt.Fprintf(summaryView, "Target: %s\nTotal events: %d\nTotal App Instances: %d", conf.ApiAddr, conf.TotalEnvelopes, len(conf.MetricMap))
+	_, _ = fmt.Fprintf(summaryView, "Target: %s\nTotal events: %d, Total RTR events: %d, Total REP events: %d\nTotal App Instances: %d", conf.ApiAddr, conf.TotalEnvelopes, conf.TotalEnvelopesRtr, conf.TotalEnvelopesRep, len(conf.MetricMap))
 
 	mainView.Clear()
 	//if err := mainView.SetCursor(maxX/2-maxX/4, maxY/2-maxY/4); err != nil {
@@ -136,10 +157,16 @@ func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 	colorSortedColumn()
 	return nil
 }
-func arrowDownOrUp(g *gocui.Gui, v *gocui.View) error {
+func spacePressed(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
 	flipSortOrder()
+	return nil
+}
+func getFilter(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	conf.ShowFilter = true
 	return nil
 }
 
@@ -188,4 +215,18 @@ func colorSortedColumn() {
 	case util.SortBySpace:
 		spaceColor = conf.ColorBlue
 	}
+}
+
+func scrollView(v *gocui.View, dy int) error {
+	if v != nil {
+		v.Autoscroll = false
+		ox, oy := v.Origin()
+		if oy <= 1 {
+			oy = 1
+		}
+		if err := v.SetOrigin(ox, oy+dy); err != nil {
+			return err
+		}
+	}
+	return nil
 }

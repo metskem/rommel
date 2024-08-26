@@ -85,9 +85,11 @@ func main() {
 						}
 						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
 							metricValues.LogRep++
+							conf.TotalEnvelopesRep++
 						}
 						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
 							metricValues.LogRtr++
+							conf.TotalEnvelopesRtr++
 						}
 						metricValues.AppName = appName
 						metricValues.AppIndex = index

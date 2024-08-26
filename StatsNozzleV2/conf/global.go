@@ -22,10 +22,13 @@ const (
 )
 
 var (
-	MapLock        sync.Mutex
-	MetricNames    = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricLogRate}
-	MetricMap      = make(map[string]Metric) // map key is app-guid/index
-	TotalEnvelopes int
+	MapLock           sync.Mutex
+	MetricNames       = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricLogRate}
+	MetricMap         = make(map[string]Metric) // map key is app-guid/index
+	TotalEnvelopes    int
+	TotalEnvelopesRep int
+	TotalEnvelopesRtr int
+	ShowFilter        = false
 )
 
 type Metric struct {

@@ -18,6 +18,7 @@ const (
 	TagSpaceName         = "space_name"
 	TagAppName           = "app_name"
 	TagAppId             = "app_id"
+	TagAppInstanceId     = "instance_id" // use this for app index
 	TagOrigin            = "origin"
 	TagOriginValueRep    = "rep"
 	TagOriginValueRtr    = "gorouter"

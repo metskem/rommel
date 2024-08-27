@@ -73,7 +73,7 @@ func main() {
 				orgName := envelope.Tags[conf.TagOrgName]
 				spaceName := envelope.Tags[conf.TagSpaceName]
 				appName := envelope.Tags[conf.TagAppName]
-				index := envelope.InstanceId
+				index := envelope.Tags[conf.TagAppInstanceId]
 				appguid := envelope.Tags[conf.TagAppId]
 				key := appguid + "/" + index
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
@@ -81,23 +81,25 @@ func main() {
 						// if key not in metricMap, add it
 						conf.MapLock.Lock()
 						metricValues, ok := conf.MetricMap[key]
-						if ok {
-							if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
-								metricValues.LogRep++
-								conf.TotalEnvelopesRep++
-							}
-							if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
-								metricValues.LogRtr++
-								conf.TotalEnvelopesRtr++
-							}
-							metricValues.AppName = appName
-							metricValues.AppIndex = index
-							metricValues.SpaceName = spaceName
-							metricValues.OrgName = orgName
-							metricValues.LastSeen = time.Now()
-							metricValues.IP = envelope.GetTags()["ip"]
+						if !ok {
+							metricValues.Values = make(map[string]float64)
 							conf.MetricMap[key] = metricValues
 						}
+						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
+							metricValues.LogRep++
+							conf.TotalEnvelopesRep++
+						}
+						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
+							metricValues.LogRtr++
+							conf.TotalEnvelopesRtr++
+						}
+						metricValues.AppName = appName
+						metricValues.AppIndex = index
+						metricValues.SpaceName = spaceName
+						metricValues.OrgName = orgName
+						metricValues.LastSeen = time.Now()
+						metricValues.IP = envelope.GetTags()["ip"]
+						conf.MetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}

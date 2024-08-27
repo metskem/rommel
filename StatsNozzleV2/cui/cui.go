@@ -204,6 +204,8 @@ func colorSortedColumn() {
 	logRateLimitColor = conf.ColorWhite
 	entColor = conf.ColorWhite
 	IPColor = conf.ColorWhite
+	logRepColor = conf.ColorWhite
+	logRateColor = conf.ColorWhite
 	orgColor = conf.ColorWhite
 	spaceColor = conf.ColorWhite
 	switch util.ActiveSortField {

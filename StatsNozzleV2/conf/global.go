@@ -32,9 +32,9 @@ var (
 	MapLock           sync.Mutex
 	MetricNames       = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
 	MetricMap         = make(map[string]Metric) // map key is app-guid/index
-	TotalEnvelopes    int
-	TotalEnvelopesRep int
-	TotalEnvelopesRtr int
+	TotalEnvelopes    float64
+	TotalEnvelopesRep float64
+	TotalEnvelopesRtr float64
 	TotalApps         = make(map[string]bool)
 	ShowFilter        = false
 	StartTime         = time.Now()

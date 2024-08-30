@@ -109,7 +109,7 @@ func refreshViewContent() {
 	//maxX, maxY := g.Size()
 
 	summaryView.Clear()
-	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\nTotal events: %d, Total RTR events: %d, Total REP events: %d\nTotal Apps: %d, Total App Instances: %d", conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), conf.TotalEnvelopes, conf.TotalEnvelopesRtr, conf.TotalEnvelopesRep, len(conf.TotalApps), len(conf.MetricMap))
+	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\nTotal events: %s, Total RTR events: %s, Total REP events: %s\nTotal Apps: %d, Total App Instances: %d", conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRep), len(conf.TotalApps), len(conf.MetricMap))
 
 	mainView.Clear()
 	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %15s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))

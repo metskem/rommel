@@ -10,6 +10,7 @@ type SortField int
 
 const (
 	SortByAppName = iota
+	SortByLastSeen
 	SortByAge
 	SortByCpuPerc
 	SortByCpuTot
@@ -58,6 +59,8 @@ func (p PairList) Less(i, j int) bool {
 	switch p[i].SortBy {
 	case SortByAppName:
 		return p[i].Value.AppName < p[j].Value.AppName
+	case SortByLastSeen:
+		return p[i].Value.LastSeen.Unix() < p[j].Value.LastSeen.Unix()
 	case SortByAge:
 		return p[i].Value.Values[conf.MetricAge] < p[j].Value.Values[conf.MetricAge]
 	case SortByCpuPerc:

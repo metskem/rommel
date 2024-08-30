@@ -16,6 +16,7 @@ var (
 	filterView        *gocui.View
 	g                 *gocui.Gui
 	appNameColor      = conf.ColorWhite
+	lastSeenColor     = conf.ColorWhite
 	ageColor          = conf.ColorWhite
 	cpuPercColor      = conf.ColorWhite
 	cpuTotColor       = conf.ColorWhite
@@ -112,12 +113,13 @@ func refreshViewContent() {
 	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\nTotal events: %s, Total RTR events: %s, Total REP events: %s\nTotal Apps: %d, Total App Instances: %d", conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRep), len(conf.TotalApps), len(conf.MetricMap))
 
 	mainView.Clear()
-	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %15s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
+	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %12s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 	conf.MapLock.Lock()
 
 	for _, pairlist := range util.SortedBy(conf.MetricMap, util.ActiveSortDirection, util.ActiveSortField) {
-		_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
-			appNameColor, pairlist.Value.AppName+"/"+pairlist.Value.AppIndex, conf.ColorReset,
+		_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+			appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCount[pairlist.Value.AppGuid]), conf.ColorReset,
+			lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 			ageColor, util.GetFormattedElapsedTime(pairlist.Value.Values[conf.MetricAge]), conf.ColorReset,
 			cpuPercColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricCpu]), conf.ColorReset,
 			cpuTotColor, util.GetFormattedUnit(pairlist.Value.CpuTot), conf.ColorReset,
@@ -194,6 +196,7 @@ func flipSortOrder() {
 
 func colorSortedColumn() {
 	appNameColor = conf.ColorWhite
+	lastSeenColor = conf.ColorWhite
 	ageColor = conf.ColorWhite
 	cpuPercColor = conf.ColorWhite
 	cpuTotColor = conf.ColorWhite
@@ -211,6 +214,8 @@ func colorSortedColumn() {
 	switch util.ActiveSortField {
 	case util.SortByAppName:
 		appNameColor = conf.ColorBlue
+	case util.SortByLastSeen:
+		lastSeenColor = conf.ColorBlue
 	case util.SortByAge:
 		ageColor = conf.ColorBlue
 	case util.SortByCpuPerc:

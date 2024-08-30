@@ -14,6 +14,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -78,8 +79,8 @@ func main() {
 				key := appguid + "/" + index
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
 					if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep || envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
-						// if key not in metricMap, add it
 						conf.MapLock.Lock()
+						// if key not in metricMap, add it
 						metricValues, ok := conf.MetricMap[key]
 						if !ok {
 							metricValues.Values = make(map[string]float64)
@@ -95,6 +96,7 @@ func main() {
 						}
 						metricValues.AppName = appName
 						metricValues.AppIndex = index
+						metricValues.AppGuid = appguid
 						metricValues.SpaceName = spaceName
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
@@ -107,8 +109,13 @@ func main() {
 					if orgName != "" {
 						conf.TotalApps[appguid] = true // just count the apps (not instances)
 						metrics := gauge.GetMetrics()
-						// if key not in metricMap, add it
+						indexInt, _ := strconv.Atoi(index)
 						conf.MapLock.Lock()
+						if indexInt+1 > conf.AppInstanceCount[appguid] {
+							conf.AppInstanceCount[appguid] = indexInt + 1
+							conf.AppInstanceCountLastUpdated = time.Now()
+						}
+						// if key not in metricMap, add it
 						metricValues, ok := conf.MetricMap[key]
 						if !ok {
 							metricValues.Values = make(map[string]float64)
@@ -122,6 +129,7 @@ func main() {
 						}
 						metricValues.AppName = appName
 						metricValues.AppIndex = index
+						metricValues.AppGuid = appguid
 						metricValues.SpaceName = spaceName
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
@@ -143,11 +151,26 @@ func main() {
 			for key, metricValues := range conf.MetricMap {
 				if time.Since(metricValues.LastSeen) > 5*time.Minute {
 					delete(conf.MetricMap, key)
-					delete(conf.TotalApps, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(conf.TotalApps, strings.Split(key, "/")[0])        // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(conf.AppInstanceCount, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
 					deleted++
 				}
 			}
 			util.WriteToFile(fmt.Sprintf("Removed %d apps from metricMap", deleted))
+			conf.MapLock.Unlock()
+		}
+	}()
+
+	// start up the routine that checks how old the value is in AppInstanceCount and lowers it if necessary
+	go func() {
+		for _ = range time.NewTicker(10 * time.Second).C {
+			conf.MapLock.Lock()
+			for key, appInstanceCount := range conf.AppInstanceCount {
+				if time.Since(conf.AppInstanceCountLastUpdated) > 10*time.Second && appInstanceCount > 1 {
+					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", key, appInstanceCount-1))
+					conf.AppInstanceCount[key] = appInstanceCount - 1
+				}
+			}
 			conf.MapLock.Unlock()
 		}
 	}()

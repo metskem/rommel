@@ -62,25 +62,25 @@ func (p PairList) Less(i, j int) bool {
 	case SortByLastSeen:
 		return p[i].Value.LastSeen.Unix() < p[j].Value.LastSeen.Unix()
 	case SortByAge:
-		return p[i].Value.Values[conf.MetricAge] < p[j].Value.Values[conf.MetricAge]
+		return p[i].Value.Tags[conf.MetricAge] < p[j].Value.Tags[conf.MetricAge]
 	case SortByCpuPerc:
-		return p[i].Value.Values[conf.MetricCpu] < p[j].Value.Values[conf.MetricCpu]
+		return p[i].Value.Tags[conf.MetricCpu] < p[j].Value.Tags[conf.MetricCpu]
 	case SortByCpuTot:
 		return p[i].Value.CpuTot < p[j].Value.CpuTot
 	case SortByMemory:
-		return p[i].Value.Values[conf.MetricMemory] < p[j].Value.Values[conf.MetricMemory]
+		return p[i].Value.Tags[conf.MetricMemory] < p[j].Value.Tags[conf.MetricMemory]
 	case SortByMemoryLimit:
-		return p[i].Value.Values[conf.MetricMemoryQuota] < p[j].Value.Values[conf.MetricMemoryQuota]
+		return p[i].Value.Tags[conf.MetricMemoryQuota] < p[j].Value.Tags[conf.MetricMemoryQuota]
 	case SortByDisk:
-		return p[i].Value.Values[conf.MetricDisk] < p[j].Value.Values[conf.MetricDisk]
+		return p[i].Value.Tags[conf.MetricDisk] < p[j].Value.Tags[conf.MetricDisk]
 	case SortByEntitlement:
-		return p[i].Value.Values[conf.MetricCpuEntitlement] < p[j].Value.Values[conf.MetricCpuEntitlement]
+		return p[i].Value.Tags[conf.MetricCpuEntitlement] < p[j].Value.Tags[conf.MetricCpuEntitlement]
 	case SortByIP:
 		return p[i].Value.IP < p[j].Value.IP
 	case SortByLogRate:
-		return p[i].Value.Values[conf.MetricLogRate] < p[j].Value.Values[conf.MetricLogRate]
+		return p[i].Value.Tags[conf.MetricLogRate] < p[j].Value.Tags[conf.MetricLogRate]
 	case SortByLogRateLimit:
-		return p[i].Value.Values[conf.MetricLogRateLimit] < p[j].Value.Values[conf.MetricLogRateLimit]
+		return p[i].Value.Tags[conf.MetricLogRateLimit] < p[j].Value.Tags[conf.MetricLogRateLimit]
 	case SortByLogRep:
 		return p[i].Value.LogRep < p[j].Value.LogRep
 	case SortByLogRtr:
@@ -90,6 +90,6 @@ func (p PairList) Less(i, j int) bool {
 	case SortBySpace:
 		return p[i].Value.SpaceName < p[j].Value.SpaceName
 	}
-	return p[i].Value.Values[conf.MetricAge] > p[j].Value.Values[conf.MetricAge] // default
+	return p[i].Value.Tags[conf.MetricAge] > p[j].Value.Tags[conf.MetricAge] // default
 }
 func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }

@@ -7,13 +7,14 @@ import (
 	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
 var (
-	mainView          *gocui.View
-	summaryView       *gocui.View
-	filterView        *gocui.View
+	mainView    *gocui.View
+	summaryView *gocui.View
+	//filterView        *gocui.View
 	g                 *gocui.Gui
 	appNameColor      = conf.ColorWhite
 	lastSeenColor     = conf.ColorWhite
@@ -42,7 +43,7 @@ func Start() {
 	defer g.Close()
 
 	g.SetManagerFunc(layout)
-	g.InputEsc = true
+	//g.InputEsc = true
 
 	//_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit)
 	_ = g.SetKeybinding("ApplicationView", 'q', gocui.ModNone, quit)
@@ -50,14 +51,19 @@ func Start() {
 	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = g.SetKeybinding("ApplicationView", gocui.KeySpace, gocui.ModNone, spacePressed)
-	_ = g.SetKeybinding("ApplicationView", 'f', gocui.ModNone, getFilter)
-	_ = g.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		util.WriteToFile("Enter pressed in filterView")
-		conf.ShowFilter = false
-		return nil
-	})
-	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, -1) })
-	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, 1) })
+	_ = g.SetKeybinding("ApplicationView", 'f', gocui.ModNone, showFilterView)
+
+	for _, c := range "-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
+		g.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
+	}
+
+	_ = g.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = g.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = g.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, handleFilterEnter)
+	_ = g.SetKeybinding("FilterView", gocui.KeyEsc, gocui.ModNone, handleFilterEsc)
+
+	//_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, -1) })
+	//_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, 1) })
 
 	colorSortedColumn()
 
@@ -93,21 +99,22 @@ func layout(g *gocui.Gui) (err error) {
 		v.Title = "Application Instances"
 	}
 	if conf.ShowFilter {
-		if filterView, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10); err != nil {
+		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
 			v, _ := g.SetCurrentView("FilterView")
 			v.Title = "Filter"
-			v.Editable = true
 			_, _ = fmt.Fprintln(v, "Filter by:")
+			_, _ = fmt.Fprint(v, conf.FilterString)
+			v.Editable = true
 		}
 	}
 	return nil
 }
 
 func refreshViewContent() {
-	//maxX, maxY := g.Size()
+	_, maxY := g.Size()
 
 	summaryView.Clear()
 	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\nTotal events: %s, Total RTR events: %s, Total REP events: %s\nTotal Apps: %d, Total App Instances: %d", conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRep), len(conf.TotalApps), len(conf.MetricMap))
@@ -116,24 +123,32 @@ func refreshViewContent() {
 	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %12s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 	conf.MapLock.Lock()
 
+	lineCounter := 0
 	for _, pairlist := range util.SortedBy(conf.MetricMap, util.ActiveSortDirection, util.ActiveSortField) {
-		_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
-			appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCount[pairlist.Value.AppGuid]), conf.ColorReset,
-			lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
-			ageColor, util.GetFormattedElapsedTime(pairlist.Value.Values[conf.MetricAge]), conf.ColorReset,
-			cpuPercColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricCpu]), conf.ColorReset,
-			cpuTotColor, util.GetFormattedUnit(pairlist.Value.CpuTot), conf.ColorReset,
-			memoryColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricMemory]), conf.ColorReset,
-			memoryLimitColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricMemoryQuota]), conf.ColorReset,
-			diskColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricDisk]), conf.ColorReset,
-			logRateColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricLogRate]), conf.ColorReset,
-			logRateLimitColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricLogRateLimit]), conf.ColorReset,
-			entColor, util.GetFormattedUnit(pairlist.Value.Values[conf.MetricCpuEntitlement]), conf.ColorReset,
-			IPColor, pairlist.Value.IP, conf.ColorReset,
-			logRepColor, util.GetFormattedUnit(pairlist.Value.LogRep), conf.ColorReset,
-			logRtrColor, util.GetFormattedUnit(pairlist.Value.LogRtr), conf.ColorReset,
-			orgColor, pairlist.Value.OrgName, conf.ColorReset,
-			spaceColor, pairlist.Value.SpaceName, conf.ColorReset)
+		if conf.FilterString == "" || strings.HasPrefix(pairlist.Value.AppName, conf.FilterString) {
+			_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+				appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCount[pairlist.Value.AppGuid]), conf.ColorReset,
+				lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
+				ageColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[conf.MetricAge]), conf.ColorReset,
+				cpuPercColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpu]), conf.ColorReset,
+				cpuTotColor, util.GetFormattedUnit(pairlist.Value.CpuTot), conf.ColorReset,
+				memoryColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricMemory]), conf.ColorReset,
+				memoryLimitColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricMemoryQuota]), conf.ColorReset,
+				diskColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricDisk]), conf.ColorReset,
+				logRateColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricLogRate]), conf.ColorReset,
+				logRateLimitColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricLogRateLimit]), conf.ColorReset,
+				entColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpuEntitlement]), conf.ColorReset,
+				IPColor, pairlist.Value.IP, conf.ColorReset,
+				logRepColor, util.GetFormattedUnit(pairlist.Value.LogRep), conf.ColorReset,
+				logRtrColor, util.GetFormattedUnit(pairlist.Value.LogRtr), conf.ColorReset,
+				orgColor, pairlist.Value.OrgName, conf.ColorReset,
+				spaceColor, pairlist.Value.SpaceName, conf.ColorReset)
+			lineCounter++
+			if lineCounter > maxY-7 {
+				//	don't render lines that don't fit on the screen
+				break
+			}
+		}
 	}
 
 	conf.MapLock.Unlock()
@@ -179,7 +194,7 @@ func spacePressed(g *gocui.Gui, v *gocui.View) error {
 	flipSortOrder()
 	return nil
 }
-func getFilter(g *gocui.Gui, v *gocui.View) error {
+func showFilterView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
 	conf.ShowFilter = true
@@ -247,16 +262,52 @@ func colorSortedColumn() {
 	}
 }
 
-func scrollView(v *gocui.View, dy int) error {
-	if v != nil {
-		v.Autoscroll = false
-		ox, oy := v.Origin()
-		if oy <= 1 {
-			oy = 1
+func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		util.WriteToFile(fmt.Sprintf("The character is %c", ch))
+		if ch == rune(gocui.KeyBackspace) {
+			if len(conf.FilterString) > 0 {
+				conf.FilterString = conf.FilterString[:len(conf.FilterString)-1]
+				fmt.Fprintln(v, gocui.KeyBackspace2)
+				//x, y := v.Cursor()
+				//util.WriteToFile(fmt.Sprintf("Cursor is at %d, %d", x, y))
+				//v.SetCursor(x+len(conf.FilterString), y+1)
+			}
+			return nil
+		} else {
+			_, _ = fmt.Fprint(v, string(ch))
+			conf.FilterString = conf.FilterString + string(ch)
 		}
-		if err := v.SetOrigin(ox, oy+dy); err != nil {
-			return err
-		}
+		return nil
 	}
+}
+
+func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFile("Enter key pressed, conf.FilterString is " + conf.FilterString)
+	conf.ShowFilter = false
+	g.DeleteView("FilterView")
+	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }
+
+func handleFilterEsc(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFile("Escape key pressed, conf.FilterString is " + conf.FilterString)
+	conf.ShowFilter = false
+	g.DeleteView("FilterView")
+	_, _ = g.SetCurrentView("ApplicationView")
+	return nil
+}
+
+//func scrollView(v *gocui.View, dy int) error {
+//	if v != nil {
+//		v.Autoscroll = false
+//		ox, oy := v.Origin()
+//		if oy <= 1 {
+//			oy = 1
+//		}
+//		if err := v.SetOrigin(ox, oy+dy); err != nil {
+//			return err
+//		}
+//	}
+//	return nil
+//}

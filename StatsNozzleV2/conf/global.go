@@ -40,6 +40,7 @@ var (
 	AppInstanceCountLastUpdated time.Time              // for example, we have 3 instances of an app, but then that app is scaled down to 2 instances, then we need to lower the AppInstanceCount
 	ShowFilter                  = false
 	StartTime                   = time.Now()
+	FilterString                string
 )
 
 type Metric struct {
@@ -53,5 +54,5 @@ type Metric struct {
 	LogRtr    float64
 	LogRep    float64
 	IP        string
-	Values    map[string]float64
+	Tags      map[string]float64
 }

@@ -28,6 +28,11 @@ var (
 )
 
 func main() {
+	// for profiling: go tool pprof http://localhost:6060/debug/pprof/profile
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	if !conf.EnvironmentComplete() {
 		os.Exit(8)
 	}
@@ -83,7 +88,7 @@ func main() {
 						// if key not in metricMap, add it
 						metricValues, ok := conf.MetricMap[key]
 						if !ok {
-							metricValues.Values = make(map[string]float64)
+							metricValues.Tags = make(map[string]float64)
 							conf.MetricMap[key] = metricValues
 						}
 						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
@@ -118,13 +123,13 @@ func main() {
 						// if key not in metricMap, add it
 						metricValues, ok := conf.MetricMap[key]
 						if !ok {
-							metricValues.Values = make(map[string]float64)
+							metricValues.Tags = make(map[string]float64)
 							conf.MetricMap[key] = metricValues
 						}
 						for _, metricName := range conf.MetricNames {
 							value := metrics[metricName].GetValue()
 							if value != 0 {
-								metricValues.Values[metricName] = value
+								metricValues.Tags[metricName] = value
 							}
 						}
 						metricValues.AppName = appName
@@ -134,7 +139,7 @@ func main() {
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
-						metricValues.CpuTot = metricValues.CpuTot + metricValues.Values[conf.MetricCpu]
+						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[conf.MetricCpu]
 						conf.MetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
@@ -166,8 +171,8 @@ func main() {
 		for _ = range time.NewTicker(10 * time.Second).C {
 			conf.MapLock.Lock()
 			for key, appInstanceCount := range conf.AppInstanceCount {
-				if time.Since(conf.AppInstanceCountLastUpdated) > 10*time.Second && appInstanceCount > 1 {
-					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", key, appInstanceCount-1))
+				if time.Since(conf.AppInstanceCountLastUpdated) > 30*time.Second && appInstanceCount > 1 {
+					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.MetricMap[key].AppName, appInstanceCount-1))
 					conf.AppInstanceCount[key] = appInstanceCount - 1
 				}
 			}

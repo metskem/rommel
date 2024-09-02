@@ -7,7 +7,7 @@ import (
 	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"os"
-	"strings"
+	"regexp"
 	"time"
 )
 
@@ -53,7 +53,7 @@ func Start() {
 	_ = g.SetKeybinding("ApplicationView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = g.SetKeybinding("ApplicationView", 'f', gocui.ModNone, showFilterView)
 
-	for _, c := range "-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
+	for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
 		g.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
 	}
 
@@ -73,7 +73,7 @@ func Start() {
 				refreshViewContent()
 				return nil
 			})
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}()
 
@@ -105,7 +105,7 @@ func layout(g *gocui.Gui) (err error) {
 			}
 			v, _ := g.SetCurrentView("FilterView")
 			v.Title = "Filter"
-			_, _ = fmt.Fprintln(v, "Filter by:")
+			_, _ = fmt.Fprintln(v, "Filter by (regular expression):")
 			_, _ = fmt.Fprint(v, conf.FilterString)
 			//v.Editable = true
 			//v.Overwrite = true
@@ -125,8 +125,9 @@ func refreshViewContent() {
 	conf.MapLock.Lock()
 
 	lineCounter := 0
+	filterRegex := regexp.MustCompile(conf.FilterString)
 	for _, pairlist := range util.SortedBy(conf.MetricMap, util.ActiveSortDirection, util.ActiveSortField) {
-		if conf.FilterString == "" || strings.HasPrefix(pairlist.Value.AppName, conf.FilterString) {
+		if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
 			_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
 				appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCount[pairlist.Value.AppGuid]), conf.ColorReset,
 				lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,

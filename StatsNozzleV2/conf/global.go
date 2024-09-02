@@ -29,6 +29,7 @@ const (
 )
 
 var (
+	Cub1                        = []byte{0x8}
 	MapLock                     sync.Mutex
 	MetricNames                 = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
 	MetricMap                   = make(map[string]Metric) // map key is app-guid/index

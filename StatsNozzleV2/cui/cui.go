@@ -107,7 +107,8 @@ func layout(g *gocui.Gui) (err error) {
 			v.Title = "Filter"
 			_, _ = fmt.Fprintln(v, "Filter by:")
 			_, _ = fmt.Fprint(v, conf.FilterString)
-			v.Editable = true
+			//v.Editable = true
+			//v.Overwrite = true
 		}
 	}
 	return nil
@@ -264,14 +265,11 @@ func colorSortedColumn() {
 
 func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		util.WriteToFile(fmt.Sprintf("The character is %c", ch))
 		if ch == rune(gocui.KeyBackspace) {
 			if len(conf.FilterString) > 0 {
 				conf.FilterString = conf.FilterString[:len(conf.FilterString)-1]
-				fmt.Fprintln(v, gocui.KeyBackspace2)
-				//x, y := v.Cursor()
-				//util.WriteToFile(fmt.Sprintf("Cursor is at %d, %d", x, y))
-				//v.SetCursor(x+len(conf.FilterString), y+1)
+				v.SetCursor(len(conf.FilterString)+1, 1)
+				v.EditDelete(true)
 			}
 			return nil
 		} else {
@@ -283,7 +281,6 @@ func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 }
 
 func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
-	util.WriteToFile("Enter key pressed, conf.FilterString is " + conf.FilterString)
 	conf.ShowFilter = false
 	g.DeleteView("FilterView")
 	_, _ = g.SetCurrentView("ApplicationView")
@@ -291,23 +288,8 @@ func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
 }
 
 func handleFilterEsc(g *gocui.Gui, v *gocui.View) error {
-	util.WriteToFile("Escape key pressed, conf.FilterString is " + conf.FilterString)
 	conf.ShowFilter = false
 	g.DeleteView("FilterView")
 	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }
-
-//func scrollView(v *gocui.View, dy int) error {
-//	if v != nil {
-//		v.Autoscroll = false
-//		ox, oy := v.Origin()
-//		if oy <= 1 {
-//			oy = 1
-//		}
-//		if err := v.SetOrigin(ox, oy+dy); err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}

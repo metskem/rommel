@@ -12,7 +12,6 @@ import (
 	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"strings"
@@ -28,11 +27,6 @@ var (
 )
 
 func main() {
-	// for profiling: go tool pprof http://localhost:6060/debug/pprof/profile
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	if !conf.EnvironmentComplete() {
 		os.Exit(8)
 	}
@@ -150,7 +144,7 @@ func main() {
 
 	// start up the routine that cleans up the metrics map (apps that haven't been seen for a while are removed)
 	go func() {
-		for _ = range time.NewTicker(1 * time.Minute).C {
+		for range time.NewTicker(1 * time.Minute).C {
 			conf.MapLock.Lock()
 			var deleted = 0
 			for key, metricValues := range conf.MetricMap {
@@ -168,7 +162,7 @@ func main() {
 
 	// start up the routine that checks how old the value is in AppInstanceCount and lowers it if necessary
 	go func() {
-		for _ = range time.NewTicker(10 * time.Second).C {
+		for range time.NewTicker(10 * time.Second).C {
 			conf.MapLock.Lock()
 			for key, appInstanceCount := range conf.AppInstanceCount {
 				if time.Since(conf.AppInstanceCountLastUpdated) > 30*time.Second && appInstanceCount > 1 {

@@ -110,9 +110,9 @@ func main() {
 						metrics := gauge.GetMetrics()
 						indexInt, _ := strconv.Atoi(index)
 						conf.MapLock.Lock()
-						if indexInt+1 > conf.AppInstanceCount[appguid] {
-							conf.AppInstanceCount[appguid] = indexInt + 1
-							conf.AppInstanceCountLastUpdated = time.Now()
+						if indexInt+1 > conf.AppInstanceCounters[appguid].Count {
+							instanceCounter := conf.AppInstanceCounter{Count: indexInt + 1, LastUpdated: time.Now()}
+							conf.AppInstanceCounters[appguid] = instanceCounter
 						}
 						// if key not in metricMap, add it
 						metricValues, ok := conf.MetricMap[key]
@@ -148,14 +148,14 @@ func main() {
 			conf.MapLock.Lock()
 			var deleted = 0
 			for key, metricValues := range conf.MetricMap {
-				if time.Since(metricValues.LastSeen) > 5*time.Minute {
+				if time.Since(metricValues.LastSeen) > 1*time.Minute {
 					delete(conf.MetricMap, key)
-					delete(conf.TotalApps, strings.Split(key, "/")[0])        // yes we know, if multiple app instances, we will do unnecessary deletes
-					delete(conf.AppInstanceCount, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(conf.TotalApps, strings.Split(key, "/")[0])           // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(conf.AppInstanceCounters, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
 					deleted++
 				}
 			}
-			util.WriteToFile(fmt.Sprintf("Removed %d apps from metricMap", deleted))
+			util.WriteToFile(fmt.Sprintf("Removed %d app instances from metricMap", deleted))
 			conf.MapLock.Unlock()
 		}
 	}()
@@ -164,10 +164,11 @@ func main() {
 	go func() {
 		for range time.NewTicker(10 * time.Second).C {
 			conf.MapLock.Lock()
-			for key, appInstanceCount := range conf.AppInstanceCount {
-				if time.Since(conf.AppInstanceCountLastUpdated) > 30*time.Second && appInstanceCount > 1 {
-					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.MetricMap[key].AppName, appInstanceCount-1))
-					conf.AppInstanceCount[key] = appInstanceCount - 1
+			for key, appInstanceCounter := range conf.AppInstanceCounters {
+				if time.Since(appInstanceCounter.LastUpdated) > 30*time.Second && appInstanceCounter.Count > 1 {
+					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.MetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
+					updatedInstanceCounter := conf.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
+					conf.AppInstanceCounters[key] = updatedInstanceCounter
 				}
 			}
 			conf.MapLock.Unlock()

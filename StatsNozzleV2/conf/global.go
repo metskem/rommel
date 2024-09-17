@@ -29,24 +29,27 @@ const (
 )
 
 var (
-	//Cub1                        = []byte{0x8}
-	MapLock                     sync.Mutex
-	MetricNames                 = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
-	MetricMap                   = make(map[string]Metric) // map key is app-guid/index
-	TotalEnvelopes              float64
-	TotalEnvelopesPerSec        float64
-	TotalEnvelopesRep           float64
-	TotalEnvelopesRepPerSec     float64
-	TotalEnvelopesRtr           float64
-	TotalEnvelopesRtrPerSec     float64
-	TotalApps                   = make(map[string]bool)
-	AppInstanceCount            = make(map[string]int) // here we keep the highest instance index for each app
-	AppInstanceCountLastUpdated time.Time              // for example, we have 3 instances of an app, but then that app is scaled down to 2 instances, then we need to lower the AppInstanceCount
-	ShowFilter                  = false
-	StartTime                   = time.Now()
-	FilterString                string
-	IntervalSecs                = 2
+	MapLock                 sync.Mutex
+	MetricNames             = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
+	MetricMap               = make(map[string]Metric) // map key is app-guid/index
+	TotalEnvelopes          float64
+	TotalEnvelopesPerSec    float64
+	TotalEnvelopesRep       float64
+	TotalEnvelopesRepPerSec float64
+	TotalEnvelopesRtr       float64
+	TotalEnvelopesRtrPerSec float64
+	TotalApps               = make(map[string]bool)
+	AppInstanceCounters     = make(map[string]AppInstanceCounter) // here we keep the highest instance index for each app
+	ShowFilter              = false
+	StartTime               = time.Now()
+	FilterString            string
+	IntervalSecs            = 2
 )
+
+type AppInstanceCounter struct {
+	Count       int
+	LastUpdated time.Time
+}
 
 type Metric struct {
 	LastSeen  time.Time

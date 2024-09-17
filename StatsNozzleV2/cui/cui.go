@@ -1,6 +1,7 @@
 package cui
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jroimartin/gocui"
 	"github.com/metskem/rommel/StatsNozzleV2/conf"
@@ -67,6 +68,7 @@ func Start() {
 
 	colorSortedColumn()
 
+	//  main UI refresh loop
 	go func() {
 		for {
 			totalEnvelopesPrev := conf.TotalEnvelopes
@@ -83,7 +85,7 @@ func Start() {
 		}
 	}()
 
-	if err = g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err = g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 		log.Panicln(err)
 	}
 }
@@ -91,14 +93,14 @@ func Start() {
 func layout(g *gocui.Gui) (err error) {
 	maxX, maxY := g.Size()
 	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v, _ := g.SetCurrentView("SummaryView")
 		v.Title = "Summary"
 	}
 	if mainView, err = g.SetView("ApplicationView", 0, 5, maxX-1, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v, _ := g.SetCurrentView("ApplicationView")
@@ -106,7 +108,7 @@ func layout(g *gocui.Gui) (err error) {
 	}
 	if conf.ShowFilter {
 		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10); err != nil {
-			if err != gocui.ErrUnknownView {
+			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}
 			v, _ := g.SetCurrentView("FilterView")
@@ -138,7 +140,7 @@ func refreshViewContent() {
 	for _, pairlist := range util.SortedBy(conf.MetricMap, util.ActiveSortDirection, util.ActiveSortField) {
 		if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
 			_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
-				appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCount[pairlist.Value.AppGuid]), conf.ColorReset,
+				appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCounters[pairlist.Value.AppGuid].Count), conf.ColorReset,
 				lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 				ageColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[conf.MetricAge]), conf.ColorReset,
 				cpuPercColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpu]), conf.ColorReset,

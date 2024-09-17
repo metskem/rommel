@@ -54,7 +54,7 @@ func Start() {
 	_ = g.SetKeybinding("ApplicationView", 'f', gocui.ModNone, showFilterView)
 
 	for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
-		g.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
+		_ = g.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
 	}
 
 	_ = g.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
@@ -69,11 +69,17 @@ func Start() {
 
 	go func() {
 		for {
+			totalEnvelopesPrev := conf.TotalEnvelopes
+			totalEnvelopesRepPrev := conf.TotalEnvelopesRep
+			totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
 			g.Update(func(g *gocui.Gui) error {
 				refreshViewContent()
 				return nil
 			})
-			time.Sleep(2 * time.Second)
+			time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)
+			conf.TotalEnvelopesPerSec = (conf.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
+			conf.TotalEnvelopesRepPerSec = (conf.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
+			conf.TotalEnvelopesRtrPerSec = (conf.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
 		}
 	}()
 
@@ -118,7 +124,10 @@ func refreshViewContent() {
 	_, maxY := g.Size()
 
 	summaryView.Clear()
-	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\nTotal events: %s, Total RTR events: %s, Total REP events: %s\nTotal Apps: %d, Total App Instances: %d", conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRep), len(conf.TotalApps), len(conf.MetricMap))
+	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n"+
+		"Total events: %s (%s/s), Total RTR events: %s (%s/s), Total REP events: %s (%s/s)\n"+
+		"Total Apps: %d, Total App Instances: %d",
+		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRep), util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec), len(conf.TotalApps), len(conf.MetricMap))
 
 	mainView.Clear()
 	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %12s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
@@ -269,7 +278,7 @@ func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 		if ch == rune(gocui.KeyBackspace) {
 			if len(conf.FilterString) > 0 {
 				conf.FilterString = conf.FilterString[:len(conf.FilterString)-1]
-				v.SetCursor(len(conf.FilterString)+1, 1)
+				_ = v.SetCursor(len(conf.FilterString)+1, 1)
 				v.EditDelete(true)
 			}
 			return nil
@@ -282,15 +291,17 @@ func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 }
 
 func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
+	_ = v // get rid of compiler warning
 	conf.ShowFilter = false
-	g.DeleteView("FilterView")
+	_ = g.DeleteView("FilterView")
 	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }
 
 func handleFilterEsc(g *gocui.Gui, v *gocui.View) error {
+	_ = v // get rid of compiler warning
 	conf.ShowFilter = false
-	g.DeleteView("FilterView")
+	_ = g.DeleteView("FilterView")
 	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }

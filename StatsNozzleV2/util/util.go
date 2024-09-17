@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var logFile *os.File
+
 // GetFormattedUnit - Transform the input (integer) to a string formatted in K, M or G */
 func GetFormattedUnit(unitValue float64) string {
 	if unitValue == 0 {
@@ -47,7 +49,13 @@ func GetFormattedElapsedTime(timeInNanoSecs float64) string {
 }
 
 func WriteToFile(text string) {
-	f, _ := os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	defer func() { _ = f.Close() }()
-	_, _ = f.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
+	var err error
+	if logFile == nil {
+		if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+			fmt.Printf("Error opening file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	//defer func() { _ = logFile.Close() }()
+	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }

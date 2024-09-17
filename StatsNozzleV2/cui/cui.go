@@ -74,6 +74,19 @@ func Start() {
 			totalEnvelopesPrev := conf.TotalEnvelopes
 			totalEnvelopesRepPrev := conf.TotalEnvelopesRep
 			totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
+
+			// update memory summaries
+			var totalMemUsed float64
+			var totalMemAllocated float64
+			conf.MapLock.Lock()
+			for _, metric := range conf.MetricMap {
+				totalMemUsed += metric.Tags[conf.MetricMemory]
+				totalMemAllocated += metric.Tags[conf.MetricMemoryQuota]
+			}
+			conf.MapLock.Unlock()
+			conf.TotalMemoryUsed = totalMemUsed
+			conf.TotalMemoryAllocated = totalMemAllocated
+
 			g.Update(func(g *gocui.Gui) error {
 				refreshViewContent()
 				return nil
@@ -127,9 +140,9 @@ func refreshViewContent() {
 
 	summaryView.Clear()
 	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n"+
-		"Total events: %s (%s/s), Total RTR events: %s (%s/s), Total REP events: %s (%s/s)\n"+
-		"Total Apps: %d, Total App Instances: %d",
-		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRep), util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec), len(conf.TotalApps), len(conf.MetricMap))
+		"Total events: %s (%s/s), RTR events: %s (%s/s), REP events: %s (%s/s)\n"+
+		"Total Apps: %d, Instances: %d, Allocated Mem: %s, Used Mem: %s\n",
+		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRep), util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec), len(conf.TotalApps), len(conf.MetricMap), util.GetFormattedUnit(conf.TotalMemoryAllocated), util.GetFormattedUnit(conf.TotalMemoryUsed))
 
 	mainView.Clear()
 	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %12s %10s %12s %7s %9s %8s %7s %9s %9s %14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))

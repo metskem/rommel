@@ -39,6 +39,8 @@ var (
 	TotalEnvelopesRtr       float64
 	TotalEnvelopesRtrPerSec float64
 	TotalApps               = make(map[string]bool)
+	TotalMemoryUsed         float64
+	TotalMemoryAllocated    float64
 	AppInstanceCounters     = make(map[string]AppInstanceCounter) // here we keep the highest instance index for each app
 	ShowFilter              = false
 	StartTime               = time.Now()

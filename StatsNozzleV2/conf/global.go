@@ -26,12 +26,16 @@ const (
 	ColorYellow          = "\033[33m"
 	ColorBlue            = "\033[34m"
 	ColorWhite           = "\033[97m"
+
+	AppOrInstanceViewInstance int = iota
+	AppOrInstanceViewApp
 )
 
 var (
 	MapLock                 sync.Mutex
 	MetricNames             = []string{MetricCpu, MetricAge, MetricCpuEntitlement, MetricDisk, MetricMemory, MetricMemoryQuota, MetricLogRate, MetricLogRateLimit}
-	MetricMap               = make(map[string]Metric) // map key is app-guid/index
+	InstanceMetricMap       = make(map[string]AppOrInstanceMetric) // map key is app-guid/index
+	AppMetricMap            map[string]AppOrInstanceMetric         // map key is app-guid
 	TotalEnvelopes          float64
 	TotalEnvelopesPerSec    float64
 	TotalEnvelopesRep       float64
@@ -47,6 +51,7 @@ var (
 	StartTime               = time.Now()
 	FilterString            string
 	IntervalSecs            = 2
+	AppOrInstanceView       = AppOrInstanceViewInstance
 )
 
 type AppInstanceCounter struct {
@@ -54,9 +59,10 @@ type AppInstanceCounter struct {
 	LastUpdated time.Time
 }
 
-type Metric struct {
+type AppOrInstanceMetric struct {
 	LastSeen  time.Time
 	AppIndex  string
+	IxCount   int
 	AppName   string
 	AppGuid   string
 	SpaceName string

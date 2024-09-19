@@ -12,6 +12,7 @@ const (
 	SortByAppName = iota
 	SortByLastSeen
 	SortByAge
+	SortByIx
 	SortByCpuPerc
 	SortByCpuTot
 	SortByMemory
@@ -32,7 +33,7 @@ var (
 	ActiveSortDirection           = true
 )
 
-func SortedBy(metricMap map[string]conf.Metric, reverse bool, sortField SortField) PairList {
+func SortedBy(metricMap map[string]conf.AppOrInstanceMetric, reverse bool, sortField SortField) PairList {
 	pairList := make(PairList, len(metricMap))
 	i := 0
 	for k, v := range metricMap {
@@ -51,7 +52,7 @@ type PairList []Pair
 type Pair struct {
 	SortBy SortField
 	Key    string
-	Value  conf.Metric
+	Value  conf.AppOrInstanceMetric
 }
 
 func (p PairList) Len() int { return len(p) }
@@ -65,6 +66,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[conf.MetricAge] < p[j].Value.Tags[conf.MetricAge]
 	case SortByCpuPerc:
 		return p[i].Value.Tags[conf.MetricCpu] < p[j].Value.Tags[conf.MetricCpu]
+	case SortByIx:
+		return p[i].Value.IxCount < p[j].Value.IxCount
 	case SortByCpuTot:
 		return p[i].Value.CpuTot < p[j].Value.CpuTot
 	case SortByMemory:

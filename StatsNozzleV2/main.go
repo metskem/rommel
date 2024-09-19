@@ -80,10 +80,10 @@ func main() {
 					if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep || envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
 						conf.MapLock.Lock()
 						// if key not in metricMap, add it
-						metricValues, ok := conf.MetricMap[key]
+						metricValues, ok := conf.InstanceMetricMap[key]
 						if !ok {
 							metricValues.Tags = make(map[string]float64)
-							conf.MetricMap[key] = metricValues
+							conf.InstanceMetricMap[key] = metricValues
 						}
 						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
 							metricValues.LogRep++
@@ -100,7 +100,7 @@ func main() {
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
-						conf.MetricMap[key] = metricValues
+						conf.InstanceMetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}
@@ -115,10 +115,10 @@ func main() {
 							conf.AppInstanceCounters[appguid] = instanceCounter
 						}
 						// if key not in metricMap, add it
-						metricValues, ok := conf.MetricMap[key]
+						metricValues, ok := conf.InstanceMetricMap[key]
 						if !ok {
 							metricValues.Tags = make(map[string]float64)
-							conf.MetricMap[key] = metricValues
+							conf.InstanceMetricMap[key] = metricValues
 						}
 						for _, metricName := range conf.MetricNames {
 							value := metrics[metricName].GetValue()
@@ -134,7 +134,7 @@ func main() {
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
 						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[conf.MetricCpu]
-						conf.MetricMap[key] = metricValues
+						conf.InstanceMetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}
@@ -147,9 +147,9 @@ func main() {
 		for range time.NewTicker(1 * time.Minute).C {
 			conf.MapLock.Lock()
 			var deleted = 0
-			for key, metricValues := range conf.MetricMap {
+			for key, metricValues := range conf.InstanceMetricMap {
 				if time.Since(metricValues.LastSeen) > 1*time.Minute {
-					delete(conf.MetricMap, key)
+					delete(conf.InstanceMetricMap, key)
 					delete(conf.TotalApps, strings.Split(key, "/")[0])           // yes we know, if multiple app instances, we will do unnecessary deletes
 					delete(conf.AppInstanceCounters, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
 					deleted++
@@ -166,7 +166,7 @@ func main() {
 			conf.MapLock.Lock()
 			for key, appInstanceCounter := range conf.AppInstanceCounters {
 				if time.Since(appInstanceCounter.LastUpdated) > 30*time.Second && appInstanceCounter.Count > 1 {
-					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.MetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
+					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.InstanceMetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
 					updatedInstanceCounter := conf.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
 					conf.AppInstanceCounters[key] = updatedInstanceCounter
 				}

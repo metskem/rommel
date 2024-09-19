@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/metskem/rommel/StatsNozzleV2/conf"
 	"os"
 	"time"
 )
@@ -58,4 +59,37 @@ func WriteToFile(text string) {
 	}
 	//defer func() { _ = logFile.Close() }()
 	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
+}
+
+// UpdateAppMetrics - Populate the AppMetricMap with the latest instance metrics. */
+func UpdateAppMetrics(instanceMetric *conf.AppOrInstanceMetric) {
+	var appMetric conf.AppOrInstanceMetric
+	var found bool
+	if appMetric, found = conf.AppMetricMap[instanceMetric.AppGuid]; !found {
+		appMetric = conf.AppOrInstanceMetric{
+			LastSeen:  instanceMetric.LastSeen,
+			AppName:   instanceMetric.AppName,
+			AppGuid:   instanceMetric.AppGuid,
+			IxCount:   1,
+			SpaceName: instanceMetric.SpaceName,
+			OrgName:   instanceMetric.OrgName,
+			CpuTot:    instanceMetric.CpuTot,
+			LogRtr:    instanceMetric.LogRtr,
+			LogRep:    instanceMetric.LogRep,
+			Tags:      make(map[string]float64),
+		}
+		for _, metricName := range conf.MetricNames {
+			appMetric.Tags[metricName] = instanceMetric.Tags[metricName]
+		}
+	} else {
+		appMetric.LastSeen = instanceMetric.LastSeen
+		appMetric.IxCount++
+		appMetric.CpuTot += instanceMetric.CpuTot
+		appMetric.LogRtr += instanceMetric.LogRtr
+		appMetric.LogRep += instanceMetric.LogRep
+		for _, metricName := range conf.MetricNames {
+			appMetric.Tags[metricName] += instanceMetric.Tags[metricName]
+		}
+	}
+	conf.AppMetricMap[instanceMetric.AppGuid] = appMetric
 }

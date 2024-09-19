@@ -159,10 +159,10 @@ func refreshViewContent() {
 	lineCounter := 0
 	filterRegex := regexp.MustCompile(conf.FilterString)
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %12s %10s %12s %7s %9s %8s %7s %9s %9s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range util.SortedBy(conf.InstanceMetricMap, util.ActiveSortDirection, util.ActiveSortField) {
 			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
-				_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%12s%s %s%10s%s %s%12s%s %s%7s%s %s%9s%s %s%8s%s %s%7s%s %s%9s%s %s%9s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
 					appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCounters[pairlist.Value.AppGuid].Count), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 					ageColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[conf.MetricAge]), conf.ColorReset,
@@ -188,10 +188,10 @@ func refreshViewContent() {
 		}
 	}
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-62s %8s %5s %6s %7s %10s %9s %7s %7s %9s %9s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %5s %5s %9s %8s %7s %8s %-25s %-35s%s\n", conf.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range util.SortedBy(conf.AppMetricMap, util.ActiveSortDirection, util.ActiveSortField) {
 			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
-				_, _ = fmt.Fprintf(mainView, "%s%-65s%s %s%5s%s %s%5d%s %s%6s%s %s%7s%s %s%10s%s %s%9s%s %s%7s%s %s%7s%s %s%9s%s %s%9s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%3d%s %s%4s%s %s%7s%s %s%8s%s %s%9s%s %s%5s%s %s%5s%s %s%9s%s %s%8s%s %s%7s%s %s%8s%s %s%-25s%s %s%-35s%s\n",
 					appNameColor, fmt.Sprintf("%s", pairlist.Value.AppName), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 					ixColor, pairlist.Value.IxCount, conf.ColorReset,

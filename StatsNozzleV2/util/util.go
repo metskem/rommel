@@ -93,3 +93,10 @@ func UpdateAppMetrics(instanceMetric *conf.AppOrInstanceMetric) {
 	}
 	conf.AppMetricMap[instanceMetric.AppGuid] = appMetric
 }
+
+func TruncateString(s string, length int) string {
+	if len(s) > length {
+		return s[:length]
+	}
+	return s
+}

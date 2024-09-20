@@ -160,10 +160,10 @@ func refreshViewContent() {
 	filterRegex := regexp.MustCompile(conf.FilterString)
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
-		for _, pairlist := range util.SortedBy(conf.InstanceMetricMap, util.ActiveSortDirection, util.ActiveSortField) {
+		for _, pairlist := range util.SortedBy(conf.InstanceMetricMap, util.ActiveSortDirection, util.ActiveInstancesSortField) {
 			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
 				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
-					appNameColor, fmt.Sprintf("%s/%s(%d)", pairlist.Value.AppName, pairlist.Value.AppIndex, conf.AppInstanceCounters[pairlist.Value.AppGuid].Count), conf.ColorReset,
+					appNameColor, fmt.Sprintf("%s/%s(%d)", util.TruncateString(pairlist.Value.AppName, 45), pairlist.Value.AppIndex, conf.AppInstanceCounters[pairlist.Value.AppGuid].Count), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 					ageColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[conf.MetricAge]), conf.ColorReset,
 					cpuPercColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpu]), conf.ColorReset,
@@ -177,7 +177,7 @@ func refreshViewContent() {
 					IPColor, pairlist.Value.IP, conf.ColorReset,
 					logRepColor, util.GetFormattedUnit(pairlist.Value.LogRep), conf.ColorReset,
 					logRtrColor, util.GetFormattedUnit(pairlist.Value.LogRtr), conf.ColorReset,
-					orgColor, pairlist.Value.OrgName, conf.ColorReset,
+					orgColor, util.TruncateString(pairlist.Value.OrgName, 25), conf.ColorReset,
 					spaceColor, pairlist.Value.SpaceName, conf.ColorReset)
 				lineCounter++
 				if lineCounter > maxY-7 {
@@ -189,10 +189,10 @@ func refreshViewContent() {
 	}
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %5s %5s %9s %8s %7s %8s %-25s %-35s%s\n", conf.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
-		for _, pairlist := range util.SortedBy(conf.AppMetricMap, util.ActiveSortDirection, util.ActiveSortField) {
+		for _, pairlist := range util.SortedBy(conf.AppMetricMap, util.ActiveSortDirection, util.ActiveAppsSortField) {
 			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
 				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%3d%s %s%4s%s %s%7s%s %s%8s%s %s%9s%s %s%5s%s %s%5s%s %s%9s%s %s%8s%s %s%7s%s %s%8s%s %s%-25s%s %s%-35s%s\n",
-					appNameColor, fmt.Sprintf("%s", pairlist.Value.AppName), conf.ColorReset,
+					appNameColor, fmt.Sprintf("%s", util.TruncateString(pairlist.Value.AppName, 45)), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 					ixColor, pairlist.Value.IxCount, conf.ColorReset,
 					cpuPercColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpu]), conf.ColorReset,
@@ -205,7 +205,7 @@ func refreshViewContent() {
 					entColor, util.GetFormattedUnit(pairlist.Value.Tags[conf.MetricCpuEntitlement]), conf.ColorReset,
 					logRepColor, util.GetFormattedUnit(pairlist.Value.LogRep), conf.ColorReset,
 					logRtrColor, util.GetFormattedUnit(pairlist.Value.LogRtr), conf.ColorReset,
-					orgColor, pairlist.Value.OrgName, conf.ColorReset,
+					orgColor, util.TruncateString(pairlist.Value.OrgName, 25), conf.ColorReset,
 					spaceColor, pairlist.Value.SpaceName, conf.ColorReset)
 				lineCounter++
 				if lineCounter > maxY-7 {
@@ -237,8 +237,23 @@ func dumper(g *gocui.Gui, v *gocui.View) error {
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if util.ActiveSortField != util.SortBySpace {
-		util.ActiveSortField++
+	if util.ActiveInstancesSortField != util.SortBySpace {
+		util.ActiveInstancesSortField++
+	}
+	if util.ActiveAppsSortField != util.SortBySpace {
+		util.ActiveAppsSortField++
+	}
+	// when in instance view mode, there is no Ix column, so skip it
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
+		if util.ActiveInstancesSortField == util.SortByIx {
+			util.ActiveInstancesSortField++
+		}
+	}
+	// when in app view mode, the Age and IP columns are not there, so skip them
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
+		if util.ActiveAppsSortField == util.SortByAge || util.ActiveAppsSortField == util.SortByIP {
+			util.ActiveAppsSortField++
+		}
 	}
 	colorSortedColumn()
 	return nil
@@ -246,8 +261,23 @@ func arrowRight(g *gocui.Gui, v *gocui.View) error {
 func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if util.ActiveSortField != util.SortByAppName {
-		util.ActiveSortField--
+	if util.ActiveInstancesSortField != util.SortByAppName {
+		util.ActiveInstancesSortField--
+	}
+	if util.ActiveAppsSortField != util.SortByAppName {
+		util.ActiveAppsSortField--
+	}
+	// when in instance view mode, there is no Ix column, so skip it
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
+		if util.ActiveInstancesSortField == util.SortByIx {
+			util.ActiveInstancesSortField--
+		}
+	}
+	// when in app view mode, the Age and IP columns are not there, so skip them
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
+		if util.ActiveAppsSortField == util.SortByAge || util.ActiveAppsSortField == util.SortByIP {
+			util.ActiveAppsSortField--
+		}
 	}
 	colorSortedColumn()
 	return nil
@@ -288,44 +318,84 @@ func colorSortedColumn() {
 	entColor = conf.ColorWhite
 	IPColor = conf.ColorWhite
 	logRepColor = conf.ColorWhite
-	logRateColor = conf.ColorWhite
+	logRtrColor = conf.ColorWhite
 	orgColor = conf.ColorWhite
 	spaceColor = conf.ColorWhite
-	switch util.ActiveSortField {
-	case util.SortByAppName:
-		appNameColor = conf.ColorBlue
-	case util.SortByLastSeen:
-		lastSeenColor = conf.ColorBlue
-	case util.SortByAge:
-		ageColor = conf.ColorBlue
-	case util.SortByIx:
-		ixColor = conf.ColorBlue
-	case util.SortByCpuPerc:
-		cpuPercColor = conf.ColorBlue
-	case util.SortByCpuTot:
-		cpuTotColor = conf.ColorBlue
-	case util.SortByMemory:
-		memoryColor = conf.ColorBlue
-	case util.SortByMemoryLimit:
-		memoryLimitColor = conf.ColorBlue
-	case util.SortByDisk:
-		diskColor = conf.ColorBlue
-	case util.SortByLogRate:
-		logRateColor = conf.ColorBlue
-	case util.SortByLogRateLimit:
-		logRateLimitColor = conf.ColorBlue
-	case util.SortByIP:
-		IPColor = conf.ColorBlue
-	case util.SortByEntitlement:
-		entColor = conf.ColorBlue
-	case util.SortByLogRep:
-		logRepColor = conf.ColorBlue
-	case util.SortByLogRtr:
-		logRtrColor = conf.ColorBlue
-	case util.SortByOrg:
-		orgColor = conf.ColorBlue
-	case util.SortBySpace:
-		spaceColor = conf.ColorBlue
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
+		switch util.ActiveInstancesSortField {
+		case util.SortByAppName:
+			appNameColor = conf.ColorBlue
+		case util.SortByLastSeen:
+			lastSeenColor = conf.ColorBlue
+		case util.SortByAge:
+			ageColor = conf.ColorBlue
+		case util.SortByIx:
+			ixColor = conf.ColorBlue
+		case util.SortByCpuPerc:
+			cpuPercColor = conf.ColorBlue
+		case util.SortByCpuTot:
+			cpuTotColor = conf.ColorBlue
+		case util.SortByMemory:
+			memoryColor = conf.ColorBlue
+		case util.SortByMemoryLimit:
+			memoryLimitColor = conf.ColorBlue
+		case util.SortByDisk:
+			diskColor = conf.ColorBlue
+		case util.SortByLogRate:
+			logRateColor = conf.ColorBlue
+		case util.SortByLogRateLimit:
+			logRateLimitColor = conf.ColorBlue
+		case util.SortByIP:
+			IPColor = conf.ColorBlue
+		case util.SortByEntitlement:
+			entColor = conf.ColorBlue
+		case util.SortByLogRep:
+			logRepColor = conf.ColorBlue
+		case util.SortByLogRtr:
+			logRtrColor = conf.ColorBlue
+		case util.SortByOrg:
+			orgColor = conf.ColorBlue
+		case util.SortBySpace:
+			spaceColor = conf.ColorBlue
+		}
+	}
+	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
+		switch util.ActiveAppsSortField {
+		case util.SortByAppName:
+			appNameColor = conf.ColorBlue
+		case util.SortByLastSeen:
+			lastSeenColor = conf.ColorBlue
+		case util.SortByAge:
+			ageColor = conf.ColorBlue
+		case util.SortByIx:
+			ixColor = conf.ColorBlue
+		case util.SortByCpuPerc:
+			cpuPercColor = conf.ColorBlue
+		case util.SortByCpuTot:
+			cpuTotColor = conf.ColorBlue
+		case util.SortByMemory:
+			memoryColor = conf.ColorBlue
+		case util.SortByMemoryLimit:
+			memoryLimitColor = conf.ColorBlue
+		case util.SortByDisk:
+			diskColor = conf.ColorBlue
+		case util.SortByLogRate:
+			logRateColor = conf.ColorBlue
+		case util.SortByLogRateLimit:
+			logRateLimitColor = conf.ColorBlue
+		case util.SortByIP:
+			IPColor = conf.ColorBlue
+		case util.SortByEntitlement:
+			entColor = conf.ColorBlue
+		case util.SortByLogRep:
+			logRepColor = conf.ColorBlue
+		case util.SortByLogRtr:
+			logRtrColor = conf.ColorBlue
+		case util.SortByOrg:
+			orgColor = conf.ColorBlue
+		case util.SortBySpace:
+			spaceColor = conf.ColorBlue
+		}
 	}
 }
 
@@ -357,7 +427,6 @@ func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
 func toggleAppOrInstanceView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	util.WriteToFile("toggleAppOrInstanceView")
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
 		conf.AppOrInstanceView = conf.AppOrInstanceViewApp
 	} else {

@@ -29,8 +29,9 @@ const (
 )
 
 var (
-	ActiveSortField     SortField = SortByCpuPerc
-	ActiveSortDirection           = true
+	ActiveInstancesSortField SortField = SortByCpuPerc
+	ActiveAppsSortField      SortField = SortByCpuPerc
+	ActiveSortDirection                = true
 )
 
 func SortedBy(metricMap map[string]conf.AppOrInstanceMetric, reverse bool, sortField SortField) PairList {
@@ -66,8 +67,6 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[conf.MetricAge] < p[j].Value.Tags[conf.MetricAge]
 	case SortByCpuPerc:
 		return p[i].Value.Tags[conf.MetricCpu] < p[j].Value.Tags[conf.MetricCpu]
-	case SortByIx:
-		return p[i].Value.IxCount < p[j].Value.IxCount
 	case SortByCpuTot:
 		return p[i].Value.CpuTot < p[j].Value.CpuTot
 	case SortByMemory:
@@ -92,6 +91,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.OrgName < p[j].Value.OrgName
 	case SortBySpace:
 		return p[i].Value.SpaceName < p[j].Value.SpaceName
+	case SortByIx:
+		return p[i].Value.IxCount < p[j].Value.IxCount
 	}
 	return p[i].Value.Tags[conf.MetricAge] > p[j].Value.Tags[conf.MetricAge] // default
 }

@@ -5,11 +5,9 @@ import (
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
-	"fmt"
 	"github.com/cloudfoundry-incubator/uaago"
 	"github.com/metskem/rommel/StatsNozzleV2/conf"
 	"github.com/metskem/rommel/StatsNozzleV2/cui"
-	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"net/http"
 	"os"
@@ -155,7 +153,6 @@ func main() {
 					deleted++
 				}
 			}
-			util.WriteToFile(fmt.Sprintf("Removed %d app instances from metricMap", deleted))
 			conf.MapLock.Unlock()
 		}
 	}()
@@ -166,7 +163,7 @@ func main() {
 			conf.MapLock.Lock()
 			for key, appInstanceCounter := range conf.AppInstanceCounters {
 				if time.Since(appInstanceCounter.LastUpdated) > 30*time.Second && appInstanceCounter.Count > 1 {
-					util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.InstanceMetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
+					//util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.InstanceMetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
 					updatedInstanceCounter := conf.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
 					conf.AppInstanceCounters[key] = updatedInstanceCounter
 				}

@@ -29,6 +29,10 @@ const (
 
 	AppOrInstanceViewInstance int = iota
 	AppOrInstanceViewApp
+
+	FilterFieldAppName int = iota
+	FilterFieldOrg
+	FilterFieldSpace
 )
 
 var (
@@ -48,9 +52,10 @@ var (
 	TotalLogRateUsed        float64
 	AppInstanceCounters     = make(map[string]AppInstanceCounter) // here we keep the highest instance index for each app
 	ShowFilter              = false
+	ShowHelp                = false
 	StartTime               = time.Now()
-	FilterString            string
-	IntervalSecs            = 2
+	FilterStrings           = make(map[int]string)
+	IntervalSecs            = 1
 	AppOrInstanceView       = AppOrInstanceViewInstance
 )
 

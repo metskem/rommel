@@ -8,7 +8,6 @@ import (
 	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"os"
-	"regexp"
 	"time"
 )
 
@@ -45,10 +44,11 @@ func Start() {
 	defer g.Close()
 
 	g.SetManagerFunc(layout)
-	//g.InputEsc = true
-
-	//_ = g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit)
+	_ = g.SetKeybinding("ApplicationView", 'h', gocui.ModNone, help)
+	_ = g.SetKeybinding("ApplicationView", '?', gocui.ModNone, help)
 	_ = g.SetKeybinding("ApplicationView", 'q', gocui.ModNone, quit)
+	_ = g.SetKeybinding("ApplicationView", 'R', gocui.ModNone, resetFilters)
+	_ = g.SetKeybinding("HelpView", 'q', gocui.ModNone, quit)
 	_ = g.SetKeybinding("ApplicationView", 'd', gocui.ModNone, dumper)
 	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
@@ -62,8 +62,8 @@ func Start() {
 
 	_ = g.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = g.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
-	_ = g.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, handleFilterEnter)
-	_ = g.SetKeybinding("FilterView", gocui.KeyEsc, gocui.ModNone, handleFilterEsc)
+	_ = g.SetKeybinding("HelpView", gocui.KeyEnter, gocui.ModNone, handleEnter)
+	_ = g.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, handleEnter)
 
 	//_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, -1) })
 	//_ = g.SetKeybinding("ApplicationView", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error { return scrollView(v, 1) })
@@ -136,10 +136,26 @@ func layout(g *gocui.Gui) (err error) {
 			}
 			v, _ := g.SetCurrentView("FilterView")
 			v.Title = "Filter"
-			_, _ = fmt.Fprintln(v, "Filter by (regular expression):")
-			_, _ = fmt.Fprint(v, conf.FilterString)
-			//v.Editable = true
-			//v.Overwrite = true
+			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
+			if util.ActiveAppsSortField == util.SortByAppName || util.ActiveInstancesSortField == util.SortByAppName {
+				_, _ = fmt.Fprintln(v, " AppName")
+			}
+			if util.ActiveAppsSortField == util.SortBySpace || util.ActiveInstancesSortField == util.SortBySpace {
+				_, _ = fmt.Fprintln(v, " Space")
+			}
+			if util.ActiveAppsSortField == util.SortByOrg || util.ActiveInstancesSortField == util.SortByOrg {
+				_, _ = fmt.Fprintln(v, " Org")
+			}
+		}
+	}
+	if conf.ShowHelp {
+		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15); err != nil {
+			if !errors.Is(err, gocui.ErrUnknownView) {
+				return err
+			}
+			v, _ := g.SetCurrentView("HelpView")
+			v.Title = "Help"
+			_, _ = fmt.Fprintln(v, "You can use the following keys:\nh or ? - show this help (<enter> to close)\nq - quit\nf - filter\nR - reset all filters\narrow keys (left/right) - sort\nspace - flip sort order\nt - toggle between app and instance view")
 		}
 	}
 	return nil
@@ -157,11 +173,10 @@ func refreshViewContent() {
 	mainView.Clear()
 	conf.MapLock.Lock()
 	lineCounter := 0
-	filterRegex := regexp.MustCompile(conf.FilterString)
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewInstance {
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range util.SortedBy(conf.InstanceMetricMap, util.ActiveSortDirection, util.ActiveInstancesSortField) {
-			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
+			if util.PassFilter(pairlist) {
 				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
 					appNameColor, fmt.Sprintf("%s/%s(%d)", util.TruncateString(pairlist.Value.AppName, 45), pairlist.Value.AppIndex, conf.AppInstanceCounters[pairlist.Value.AppGuid].Count), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
@@ -190,7 +205,7 @@ func refreshViewContent() {
 	if conf.AppOrInstanceView == conf.AppOrInstanceViewApp {
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %5s %5s %9s %8s %7s %8s %-25s %-35s%s\n", conf.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range util.SortedBy(conf.AppMetricMap, util.ActiveSortDirection, util.ActiveAppsSortField) {
-			if conf.FilterString == "" || filterRegex.MatchString(pairlist.Value.AppName) {
+			if util.PassFilter(pairlist) {
 				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%3d%s %s%4s%s %s%7s%s %s%8s%s %s%9s%s %s%5s%s %s%5s%s %s%9s%s %s%8s%s %s%7s%s %s%8s%s %s%-25s%s %s%-35s%s\n",
 					appNameColor, fmt.Sprintf("%s", util.TruncateString(pairlist.Value.AppName, 45)), conf.ColorReset,
 					lastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
@@ -232,6 +247,20 @@ func dumper(g *gocui.Gui, v *gocui.View) error {
 		util.WriteToFile(fmt.Sprintf("%s %s %s %s", key, metric.OrgName, metric.SpaceName, metric.AppName))
 	}
 	conf.MapLock.Unlock()
+	return nil
+}
+func help(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	conf.ShowHelp = true
+	return nil
+}
+func resetFilters(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	conf.FilterStrings[conf.FilterFieldAppName] = ""
+	conf.FilterStrings[conf.FilterFieldOrg] = ""
+	conf.FilterStrings[conf.FilterFieldSpace] = ""
 	return nil
 }
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
@@ -401,25 +430,55 @@ func colorSortedColumn() {
 
 func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
-		if ch == rune(gocui.KeyBackspace) {
-			if len(conf.FilterString) > 0 {
-				conf.FilterString = conf.FilterString[:len(conf.FilterString)-1]
-				_ = v.SetCursor(len(conf.FilterString)+1, 1)
-				v.EditDelete(true)
+		if util.ActiveInstancesSortField == util.SortByAppName || util.ActiveAppsSortField == util.SortByAppName {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(conf.FilterStrings[conf.FilterFieldAppName]) > 0 {
+					conf.FilterStrings[conf.FilterFieldAppName] = conf.FilterStrings[conf.FilterFieldAppName][:len(conf.FilterStrings[conf.FilterFieldAppName])-1]
+					_ = v.SetCursor(len(conf.FilterStrings[conf.FilterFieldAppName])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				conf.FilterStrings[conf.FilterFieldAppName] = conf.FilterStrings[conf.FilterFieldAppName] + string(ch)
 			}
-			return nil
-		} else {
-			_, _ = fmt.Fprint(v, string(ch))
-			conf.FilterString = conf.FilterString + string(ch)
+		}
+		if util.ActiveInstancesSortField == util.SortBySpace || util.ActiveAppsSortField == util.SortBySpace {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(conf.FilterStrings[conf.FilterFieldSpace]) > 0 {
+					conf.FilterStrings[conf.FilterFieldSpace] = conf.FilterStrings[conf.FilterFieldSpace][:len(conf.FilterStrings[conf.FilterFieldSpace])-1]
+					_ = v.SetCursor(len(conf.FilterStrings[conf.FilterFieldSpace])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				conf.FilterStrings[conf.FilterFieldSpace] = conf.FilterStrings[conf.FilterFieldSpace] + string(ch)
+			}
+		}
+		if util.ActiveInstancesSortField == util.SortByOrg || util.ActiveAppsSortField == util.SortByOrg {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(conf.FilterStrings[conf.FilterFieldOrg]) > 0 {
+					conf.FilterStrings[conf.FilterFieldOrg] = conf.FilterStrings[conf.FilterFieldOrg][:len(conf.FilterStrings[conf.FilterFieldOrg])-1]
+					_ = v.SetCursor(len(conf.FilterStrings[conf.FilterFieldOrg])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				conf.FilterStrings[conf.FilterFieldOrg] = conf.FilterStrings[conf.FilterFieldOrg] + string(ch)
+			}
 		}
 		return nil
 	}
 }
 
-func handleFilterEnter(g *gocui.Gui, v *gocui.View) error {
+func handleEnter(g *gocui.Gui, v *gocui.View) error {
 	_ = v // get rid of compiler warning
 	conf.ShowFilter = false
+	conf.ShowHelp = false
 	_ = g.DeleteView("FilterView")
+	_ = g.DeleteView("HelpView")
 	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }
@@ -432,13 +491,5 @@ func toggleAppOrInstanceView(g *gocui.Gui, v *gocui.View) error {
 	} else {
 		conf.AppOrInstanceView = conf.AppOrInstanceViewInstance
 	}
-	return nil
-}
-
-func handleFilterEsc(g *gocui.Gui, v *gocui.View) error {
-	_ = v // get rid of compiler warning
-	conf.ShowFilter = false
-	_ = g.DeleteView("FilterView")
-	_, _ = g.SetCurrentView("ApplicationView")
 	return nil
 }

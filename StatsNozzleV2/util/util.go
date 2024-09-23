@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/metskem/rommel/StatsNozzleV2/conf"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -99,4 +100,21 @@ func TruncateString(s string, length int) string {
 		return s[:length]
 	}
 	return s
+}
+
+func PassFilter(pairList Pair) bool {
+	passFilter := true
+	filterRegex := regexp.MustCompile(conf.FilterStrings[conf.FilterFieldAppName])
+	if !(conf.FilterStrings[conf.FilterFieldAppName] == "") && !filterRegex.MatchString(pairList.Value.AppName) {
+		passFilter = false
+	}
+	filterRegex = regexp.MustCompile(conf.FilterStrings[conf.FilterFieldSpace])
+	if !(conf.FilterStrings[conf.FilterFieldSpace] == "") && !filterRegex.MatchString(pairList.Value.SpaceName) {
+		passFilter = false
+	}
+	filterRegex = regexp.MustCompile(conf.FilterStrings[conf.FilterFieldOrg])
+	if !(conf.FilterStrings[conf.FilterFieldOrg] == "") && !filterRegex.MatchString(pairList.Value.OrgName) {
+		passFilter = false
+	}
+	return passFilter
 }

@@ -139,12 +139,15 @@ func layout(g *gocui.Gui) (err error) {
 			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
 			if util.ActiveAppsSortField == util.SortByAppName || util.ActiveInstancesSortField == util.SortByAppName {
 				_, _ = fmt.Fprintln(v, " AppName")
+				_, _ = fmt.Fprintln(v, conf.FilterStrings[conf.FilterFieldAppName])
 			}
 			if util.ActiveAppsSortField == util.SortBySpace || util.ActiveInstancesSortField == util.SortBySpace {
 				_, _ = fmt.Fprintln(v, " Space")
+				_, _ = fmt.Fprintln(v, conf.FilterStrings[conf.FilterFieldSpace])
 			}
 			if util.ActiveAppsSortField == util.SortByOrg || util.ActiveInstancesSortField == util.SortByOrg {
 				_, _ = fmt.Fprintln(v, " Org")
+				_, _ = fmt.Fprintln(v, conf.FilterStrings[conf.FilterFieldOrg])
 			}
 		}
 	}

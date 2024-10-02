@@ -5,9 +5,12 @@ import (
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
+	"flag"
+	"fmt"
 	"github.com/cloudfoundry-incubator/uaago"
 	"github.com/metskem/rommel/StatsNozzleV2/conf"
 	"github.com/metskem/rommel/StatsNozzleV2/cui"
+	"github.com/metskem/rommel/StatsNozzleV2/util"
 	"log"
 	"net/http"
 	"os"
@@ -21,10 +24,16 @@ var (
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 	}
-	accessToken string
+	gaugeSelectors = []*loggregator_v2.Selector{
+		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
+	}
+	accessToken      string
+	useRepRtrLogging bool
 )
 
 func main() {
+	flag.BoolVar(&useRepRtrLogging, "l", false, "show REP and RTR logging (costs a lot more CPU)")
+	flag.Parse()
 	if !conf.EnvironmentComplete() {
 		os.Exit(8)
 	}
@@ -62,7 +71,13 @@ func main() {
 	)
 
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
-	envelopeStream := c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+	var envelopeStream loggregator.EnvelopeStream
+	util.WriteToFile(fmt.Sprintf("useRtrRepLogging: %t", useRepRtrLogging))
+	if useRepRtrLogging {
+		envelopeStream = c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+	} else {
+		envelopeStream = c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
+	}
 
 	go func() {
 		for {

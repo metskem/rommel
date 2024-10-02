@@ -1,6 +1,6 @@
 module github.com/metskem/rommel/StatsNozzleV2
 
-go 1.22.3
+go 1.23
 
 require (
 	code.cloudfoundry.org/go-loggregator/v9 v9.2.1

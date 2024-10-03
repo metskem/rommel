@@ -1,16 +1,16 @@
 package main
 
 import (
+	"code.cloudfoundry.org/cli/plugin"
 	"code.cloudfoundry.org/go-loggregator/v9"
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/cloudfoundry-incubator/uaago"
-	"github.com/metskem/rommel/StatsNozzleV2/conf"
-	"github.com/metskem/rommel/StatsNozzleV2/cui"
-	"github.com/metskem/rommel/StatsNozzleV2/util"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/cui"
+	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"log"
 	"net/http"
 	"os"
@@ -31,10 +31,10 @@ var (
 	useRepRtrLogging bool
 )
 
-func main() {
+func startMT(cliConnection plugin.CliConnection) {
 	flag.BoolVar(&useRepRtrLogging, "l", false, "show REP and RTR logging (costs a lot more CPU)")
 	flag.Parse()
-	if !conf.EnvironmentComplete() {
+	if !conf.EnvironmentComplete(cliConnection) {
 		os.Exit(8)
 	}
 
@@ -46,17 +46,13 @@ func main() {
 		}
 	}()
 
-	uaa, err := uaago.NewClient(strings.Replace(conf.ApiAddr, "api.sys", "uaa.sys", 1))
-	if err != nil {
-		log.Printf("error while getting uaaClient %s\n", err)
-		os.Exit(1)
-	}
-
 	tokenAttacher := &TokenAttacher{}
+
+	var err error
 
 	go func() {
 		for {
-			if accessToken, err = uaa.GetAuthToken(conf.Client, conf.Secret, true); err != nil {
+			if accessToken, err = cliConnection.AccessToken(); err != nil {
 				log.Fatalf("tokenRefresher failed : %s)", err)
 			}
 			tokenAttacher.refreshToken(accessToken)

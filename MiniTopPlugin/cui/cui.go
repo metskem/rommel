@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jroimartin/gocui"
-	"github.com/metskem/rommel/StatsNozzleV2/conf"
-	"github.com/metskem/rommel/StatsNozzleV2/util"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"log"
-	"os"
 	"time"
 )
 
@@ -239,7 +238,7 @@ func refreshViewContent() {
 func quit(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	os.Exit(0)
+	//os.Exit(0)
 	return gocui.ErrQuit
 }
 func dumper(g *gocui.Gui, v *gocui.View) error {

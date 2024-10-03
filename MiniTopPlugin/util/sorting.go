@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/metskem/rommel/StatsNozzleV2/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"sort"
 )
 

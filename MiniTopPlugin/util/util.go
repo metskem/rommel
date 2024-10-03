@@ -2,7 +2,7 @@ package util
 
 import (
 	"fmt"
-	"github.com/metskem/rommel/StatsNozzleV2/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"os"
 	"regexp"
 	"time"

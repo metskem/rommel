@@ -24,7 +24,7 @@ const (
 	TagOriginValueRtr    = "gorouter"
 	ColorReset           = "\033[0m"
 	ColorYellow          = "\033[33m"
-	ColorBlue            = "\033[34m"
+	ColorBlue            = "\033[36m"
 	ColorWhite           = "\033[97m"
 
 	AppOrInstanceViewInstance int = iota

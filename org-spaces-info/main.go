@@ -10,6 +10,7 @@ import (
 )
 
 var totalCount, sukkelCount int
+var recipients map[string]bool
 
 func main() {
 	if len(os.Args) < 2 {
@@ -17,12 +18,16 @@ func main() {
 		os.Exit(1)
 	}
 	directory := os.Args[1]
-	fmt.Printf("Directory: %s\n", directory)
+	//fmt.Printf("Directory: %s\n", directory)
+	recipients = make(map[string]bool)
 
 	if err := filepath.Walk(directory, showPath); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("Total spaces: %d, sukkels: %d\n", totalCount, sukkelCount)
+	fmt.Printf("Total spaces: %d, sukkels: %d\n\n", totalCount, sukkelCount)
+	for k := range recipients {
+		_, _ = fmt.Fprintln(os.Stderr, k+";")
+	}
 }
 
 func showPath(fullPath string, info os.FileInfo, err error) error {
@@ -40,11 +45,17 @@ func showPath(fullPath string, info os.FileInfo, err error) error {
 				fmt.Printf("%s could not be parsed: %s\n", fullPath, err)
 			} else {
 				totalCount++
-				samlUsers := len(spaceConfig.SpaceDeveloper.SamlUsers) + len(spaceConfig.SpaceAuditor.SamlUsers) + len(spaceConfig.SpaceManager.SamlUsers)
-				aadGroups := len(spaceConfig.SpaceDeveloper.AadGroups) + len(spaceConfig.SpaceAuditor.AadGroups) + len(spaceConfig.SpaceManager.AadGroups)
-				if samlUsers > 0 {
+				var valuesToPrint []string
+				for _, value := range spaceConfig.SpaceDeveloper.Users {
+					if value != "cf-dsmdev-automation" && value != "cf-dsmprd-automation" && value != "pcf-panzer" {
+						valuesToPrint = append(valuesToPrint, value)
+						recipients[spaceConfig.Metadata.Contact] = true
+					}
+				}
+
+				if len(valuesToPrint) > 0 {
 					sukkelCount++
-					fmt.Printf("%s/%s: saml_users:%d, aad_groups:%d\n", spaceConfig.Org, spaceConfig.Space, samlUsers, aadGroups)
+					fmt.Printf("%s/%s: %v\n", spaceConfig.Org, spaceConfig.Space, valuesToPrint)
 				}
 			}
 		}

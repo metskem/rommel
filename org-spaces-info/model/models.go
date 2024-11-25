@@ -42,7 +42,7 @@ type SpaceManager struct {
 }
 type SpaceAuditor struct {
 	LdapUsers  []interface{} `yaml:"ldap_users"`
-	Users      []interface{} `yaml:"users"`
+	Users      []string      `yaml:"users"`
 	SpnUsers   []string      `yaml:"spn_users"`
 	LdapGroup  string        `yaml:"ldap_group"`
 	LdapGroups []interface{} `yaml:"ldap_groups"`

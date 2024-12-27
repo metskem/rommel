@@ -11,7 +11,6 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/cui"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -42,7 +41,7 @@ func startMT(cliConnection plugin.CliConnection) {
 
 	go func() {
 		for err := range errorChan {
-			log.Printf("from errorChannel: %s\n", err.Error())
+			fmt.Printf("from errorChannel: %s\n", err.Error())
 		}
 	}()
 
@@ -53,7 +52,7 @@ func startMT(cliConnection plugin.CliConnection) {
 	go func() {
 		for {
 			if accessToken, err = cliConnection.AccessToken(); err != nil {
-				log.Fatalf("tokenRefresher failed : %s)", err)
+				fmt.Printf("tokenRefresher failed : %s)", err)
 			}
 			tokenAttacher.refreshToken(accessToken)
 			time.Sleep(15 * time.Minute)

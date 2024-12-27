@@ -6,7 +6,7 @@ import (
 	"github.com/jroimartin/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
-	"log"
+	"os"
 	"time"
 )
 
@@ -38,7 +38,8 @@ func Start() {
 	var err error
 	g, err = gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
-		log.Panicln(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	defer g.Close()
 
@@ -75,11 +76,9 @@ func Start() {
 			totalEnvelopesPrev := conf.TotalEnvelopes
 			totalEnvelopesRepPrev := conf.TotalEnvelopesRep
 			totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
-			totalLogRateUsed := conf.TotalLogRateUsed
 
 			// update memory summaries
-			var totalMemUsed float64
-			var totalMemAllocated float64
+			var totalMemUsed, totalMemAllocated, totalLogRateUsed float64
 			conf.MapLock.Lock()
 			conf.AppMetricMap = make(map[string]conf.AppOrInstanceMetric)
 			for _, metric := range conf.InstanceMetricMap {
@@ -108,7 +107,8 @@ func Start() {
 	}()
 
 	if err = g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		log.Panicln(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 

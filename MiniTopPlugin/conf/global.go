@@ -29,7 +29,8 @@ const (
 
 	AppOrInstanceViewInstance int = iota
 	AppOrInstanceViewApp
-
+)
+const (
 	FilterFieldAppName int = iota
 	FilterFieldOrg
 	FilterFieldSpace

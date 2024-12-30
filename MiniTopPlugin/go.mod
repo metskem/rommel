@@ -25,13 +25,14 @@ require (
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible // indirect
-	github.com/cloudfoundry/bosh-utils v0.0.516 // indirect
+	github.com/cloudfoundry/bosh-utils v0.0.518 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/integrii/flaggy v1.5.2 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/pty v1.1.8 // indirect

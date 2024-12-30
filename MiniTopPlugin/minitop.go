@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
-	"flag"
 	"fmt"
+	"github.com/integrii/flaggy"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/cui"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
@@ -31,8 +31,10 @@ var (
 )
 
 func startMT(cliConnection plugin.CliConnection) {
-	flag.BoolVar(&useRepRtrLogging, "l", false, "show REP and RTR logging (costs a lot more CPU)")
-	flag.Parse()
+	flaggy.DefaultParser.ShowHelpOnUnexpected = false
+	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
+	flaggy.Bool(&useRepRtrLogging, "l", "includelogs", "Include logs from REP and RTR (excessive CPU overhead)")
+	flaggy.Parse()
 	if !conf.EnvironmentComplete(cliConnection) {
 		os.Exit(8)
 	}

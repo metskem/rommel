@@ -3,7 +3,7 @@ package cui
 import (
 	"errors"
 	"fmt"
-	"github.com/jroimartin/gocui"
+	"github.com/awesome-gocui/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"os"
@@ -36,7 +36,7 @@ var (
 
 func Start() {
 	var err error
-	g, err = gocui.NewGui(gocui.OutputNormal)
+	g, err = gocui.NewGui(gocui.Output256, false)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -114,14 +114,14 @@ func Start() {
 
 func layout(g *gocui.Gui) (err error) {
 	maxX, maxY := g.Size()
-	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4); err != nil {
+	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4, byte(0)); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 		v, _ := g.SetCurrentView("SummaryView")
 		v.Title = "Summary"
 	}
-	if mainView, err = g.SetView("ApplicationView", 0, 5, maxX-1, maxY-1); err != nil {
+	if mainView, err = g.SetView("ApplicationView", 0, 5, maxX-1, maxY-1, byte(0)); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
@@ -129,7 +129,7 @@ func layout(g *gocui.Gui) (err error) {
 		v.Title = "Application Instances"
 	}
 	if conf.ShowFilter {
-		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10); err != nil {
+		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}
@@ -151,7 +151,7 @@ func layout(g *gocui.Gui) (err error) {
 		}
 	}
 	if conf.ShowHelp {
-		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15); err != nil {
+		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}
@@ -170,7 +170,18 @@ func refreshViewContent() {
 	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n"+
 		"Total events: %s (%s/s), RTR events: %s (%s/s), REP events: %s (%s/s), App LogRate: %sBps\n"+
 		"Total Apps: %d, Instances: %d, Allocated Mem: %s, Used Mem: %s\n",
-		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9), util.GetFormattedUnit(conf.TotalEnvelopes), util.GetFormattedUnit(conf.TotalEnvelopesPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRtr), util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec), util.GetFormattedUnit(conf.TotalEnvelopesRep), util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec), util.GetFormattedUnit(conf.TotalLogRateUsed/8), len(conf.TotalApps), len(conf.InstanceMetricMap), util.GetFormattedUnit(conf.TotalMemoryAllocated), util.GetFormattedUnit(conf.TotalMemoryUsed))
+		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9),
+		util.GetFormattedUnit(conf.TotalEnvelopes),
+		util.GetFormattedUnit(conf.TotalEnvelopesPerSec),
+		util.GetFormattedUnit(conf.TotalEnvelopesRtr),
+		util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec),
+		util.GetFormattedUnit(conf.TotalEnvelopesRep),
+		util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec),
+		util.GetFormattedUnit(conf.TotalLogRateUsed/8),
+		len(conf.TotalApps),
+		len(conf.InstanceMetricMap),
+		util.GetFormattedUnit(conf.TotalMemoryAllocated),
+		util.GetFormattedUnit(conf.TotalMemoryUsed))
 
 	mainView.Clear()
 	conf.MapLock.Lock()

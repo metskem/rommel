@@ -22,9 +22,13 @@ var (
 	allSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
+		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
+		{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}},
 	}
 	gaugeSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
+		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
+		{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}},
 	}
 	accessToken      string
 	useRepRtrLogging bool
@@ -33,7 +37,7 @@ var (
 func startMT(cliConnection plugin.CliConnection) {
 	flaggy.DefaultParser.ShowHelpOnUnexpected = false
 	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
-	flaggy.Bool(&useRepRtrLogging, "l", "includelogs", "Include logs from REP and RTR (excessive CPU overhead)")
+	flaggy.Bool(&useRepRtrLogging, "l", "includelogs", "Include logs from REP and RTR (more CPU overhead)")
 	flaggy.Parse()
 	if !conf.EnvironmentComplete(cliConnection) {
 		os.Exit(8)
@@ -43,7 +47,7 @@ func startMT(cliConnection plugin.CliConnection) {
 
 	go func() {
 		for err := range errorChan {
-			fmt.Printf("from errorChannel: %s\n", err.Error())
+			util.WriteToFile(fmt.Sprintf("from errorChannel: %s\n", err.Error()))
 		}
 	}()
 
@@ -61,19 +65,20 @@ func startMT(cliConnection plugin.CliConnection) {
 		}
 	}()
 
-	c := loggregator.NewRLPGatewayClient(
+	rlpGatewayClient := loggregator.NewRLPGatewayClient(
 		strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 		loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
 		loggregator.WithRLPGatewayErrChan(errorChan),
+		loggregator.WithRLPGatewayMaxRetries(100),
 	)
 
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
 	var envelopeStream loggregator.EnvelopeStream
 	util.WriteToFile(fmt.Sprintf("useRtrRepLogging: %t", useRepRtrLogging))
 	if useRepRtrLogging {
-		envelopeStream = c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
 	} else {
-		envelopeStream = c.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
+		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
 
 	go func() {
@@ -115,6 +120,7 @@ func startMT(cliConnection plugin.CliConnection) {
 					}
 				}
 				if gauge := envelope.GetGauge(); gauge != nil {
+					//util.WriteToFile(fmt.Sprintf("gauge: %v / Tags: %v", gauge, envelope.GetTags()))
 					if orgName != "" {
 						conf.TotalApps[appguid] = true // just count the apps (not instances)
 						metrics := gauge.GetMetrics()
@@ -148,6 +154,12 @@ func startMT(cliConnection plugin.CliConnection) {
 						conf.MapLock.Unlock()
 					}
 				}
+				//if counter := envelope.GetCounter(); counter != nil {
+				//	util.WriteToFile(fmt.Sprintf("counter: %v / Tags: %v", counter, envelope.GetTags()))
+				//}
+				//if event := envelope.GetEvent(); event != nil {
+				//	util.WriteToFile(fmt.Sprintf("event: %v / Tags: %v", event, envelope.GetTags()))
+				//}
 			}
 		}
 	}()

@@ -6,10 +6,13 @@ import (
 	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"github.com/awesome-gocui/gocui"
 	"github.com/integrii/flaggy"
+	"github.com/metskem/rommel/MiniTopPlugin/apps"
+	"github.com/metskem/rommel/MiniTopPlugin/common"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
-	"github.com/metskem/rommel/MiniTopPlugin/cui"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"net/http"
 	"os"
@@ -32,6 +35,7 @@ var (
 	}
 	accessToken      string
 	useRepRtrLogging bool
+	gui              *gocui.Gui
 )
 
 func startMT(cliConnection plugin.CliConnection) {
@@ -69,7 +73,7 @@ func startMT(cliConnection plugin.CliConnection) {
 		strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 		loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
 		loggregator.WithRLPGatewayErrChan(errorChan),
-		loggregator.WithRLPGatewayMaxRetries(100),
+		loggregator.WithRLPGatewayMaxRetries(1000),
 	)
 
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
@@ -80,6 +84,9 @@ func startMT(cliConnection plugin.CliConnection) {
 	} else {
 		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
+
+	filterCache := make(map[string]bool)
+	tag2filter := "origin"
 
 	go func() {
 		for {
@@ -121,7 +128,7 @@ func startMT(cliConnection plugin.CliConnection) {
 				}
 				if gauge := envelope.GetGauge(); gauge != nil {
 					//util.WriteToFile(fmt.Sprintf("gauge: %v / Tags: %v", gauge, envelope.GetTags()))
-					if orgName != "" {
+					if orgName != "" { // these are app-related metrics
 						conf.TotalApps[appguid] = true // just count the apps (not instances)
 						metrics := gauge.GetMetrics()
 						indexInt, _ := strconv.Atoi(index)
@@ -152,14 +159,20 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[conf.MetricCpu]
 						conf.InstanceMetricMap[key] = metricValues
 						conf.MapLock.Unlock()
+					} else { // these are machine-related metrics (diego-cell / router / cc )
+
+					}
+					if envelope.Tags[conf.TagOrgName] == "" {
+						tag2filter = envelope.Tags["job"] + "," + envelope.Tags["origin"] // these are cell-related metrics
+						for metricKey, _ := range gauge.GetMetrics() {
+							tag2filter = tag2filter + "," + metricKey
+							if !filterCache[tag2filter] {
+								//util.WriteToFile(fmt.Sprintf("%s", tag2filter))
+								filterCache[tag2filter] = true
+							}
+						}
 					}
 				}
-				//if counter := envelope.GetCounter(); counter != nil {
-				//	util.WriteToFile(fmt.Sprintf("counter: %v / Tags: %v", counter, envelope.GetTags()))
-				//}
-				//if event := envelope.GetEvent(); event != nil {
-				//	util.WriteToFile(fmt.Sprintf("event: %v / Tags: %v", event, envelope.GetTags()))
-				//}
 			}
 		}
 	}()
@@ -196,7 +209,38 @@ func startMT(cliConnection plugin.CliConnection) {
 		}
 	}()
 
-	cui.Start()
+	StartCui()
+}
+
+// StartCui - Start the Console User Interface to present the metrics
+func StartCui() {
+	var err error
+	gui, err = gocui.NewGui(gocui.OutputNormal, false)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer gui.Close()
+
+	gui.SetManager(apps.NewAppView())
+
+	apps.SetKeyBindings(gui)
+	common.SetKeyBindings(gui)
+
+	//  main UI refresh loop
+	go func() {
+		for {
+			if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
+				apps.ShowView(gui)
+			}
+		}
+	}()
+
+	if err = gui.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
+		fmt.Println(err)
+		gui.Close()
+		os.Exit(1)
+	}
 }
 
 type TokenAttacher struct {

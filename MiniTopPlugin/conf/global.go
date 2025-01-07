@@ -22,13 +22,15 @@ const (
 	TagOrigin            = "origin"
 	TagOriginValueRep    = "rep"
 	TagOriginValueRtr    = "gorouter"
+	TagIp                = "ip"
 	ColorReset           = "\033[0m"
 	ColorYellow          = "\033[33m"
 	ColorBlue            = "\033[36m"
 	ColorWhite           = "\033[97m"
 
-	AppOrInstanceViewInstance int = iota
-	AppOrInstanceViewApp
+	AppInstanceView int = iota
+	AppView
+	VMView
 )
 const (
 	FilterFieldAppName int = iota
@@ -57,7 +59,8 @@ var (
 	StartTime               = time.Now()
 	FilterStrings           = make(map[int]string)
 	IntervalSecs            = 1
-	AppOrInstanceView       = AppOrInstanceViewInstance
+	ActiveView              = AppInstanceView
+	ShowSelectView          = false
 )
 
 type AppInstanceCounter struct {

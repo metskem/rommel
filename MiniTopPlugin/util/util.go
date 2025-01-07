@@ -5,7 +5,6 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"os"
 	"regexp"
-	"time"
 )
 
 var logFile *os.File
@@ -59,7 +58,8 @@ func WriteToFile(text string) {
 		}
 	}
 	//defer func() { _ = logFile.Close() }()
-	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
+	_, _ = logFile.WriteString(text + "\n")
+	//_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }
 
 // UpdateAppMetrics - Populate the AppMetricMap with the latest instance metrics. */

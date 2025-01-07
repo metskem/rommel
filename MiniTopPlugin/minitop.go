@@ -14,6 +14,7 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/common"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
+	"github.com/metskem/rommel/MiniTopPlugin/vms"
 	"net/http"
 	"os"
 	"strconv"
@@ -92,26 +93,26 @@ func startMT(cliConnection plugin.CliConnection) {
 		for {
 			for _, envelope := range envelopeStream() {
 				conf.TotalEnvelopes++
-				orgName := envelope.Tags[conf.TagOrgName]
-				spaceName := envelope.Tags[conf.TagSpaceName]
-				appName := envelope.Tags[conf.TagAppName]
-				index := envelope.Tags[conf.TagAppInstanceId]
-				appguid := envelope.Tags[conf.TagAppId]
+				orgName := envelope.Tags[apps.TagOrgName]
+				spaceName := envelope.Tags[apps.TagSpaceName]
+				appName := envelope.Tags[apps.TagAppName]
+				index := envelope.Tags[apps.TagAppInstanceId]
+				appguid := envelope.Tags[apps.TagAppId]
 				key := appguid + "/" + index
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
-					if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep || envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
+					if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep || envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
 						conf.MapLock.Lock()
 						// if key not in metricMap, add it
-						metricValues, ok := conf.InstanceMetricMap[key]
+						metricValues, ok := apps.InstanceMetricMap[key]
 						if !ok {
 							metricValues.Tags = make(map[string]float64)
-							conf.InstanceMetricMap[key] = metricValues
+							apps.InstanceMetricMap[key] = metricValues
 						}
-						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRep {
+						if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep {
 							metricValues.LogRep++
 							conf.TotalEnvelopesRep++
 						}
-						if envelope.Tags[conf.TagOrigin] == conf.TagOriginValueRtr {
+						if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
 							metricValues.LogRtr++
 							conf.TotalEnvelopesRtr++
 						}
@@ -122,7 +123,7 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
-						conf.InstanceMetricMap[key] = metricValues
+						apps.InstanceMetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					}
 				}
@@ -133,17 +134,17 @@ func startMT(cliConnection plugin.CliConnection) {
 						metrics := gauge.GetMetrics()
 						indexInt, _ := strconv.Atoi(index)
 						conf.MapLock.Lock()
-						if indexInt+1 > conf.AppInstanceCounters[appguid].Count {
-							instanceCounter := conf.AppInstanceCounter{Count: indexInt + 1, LastUpdated: time.Now()}
-							conf.AppInstanceCounters[appguid] = instanceCounter
+						if indexInt+1 > apps.AppInstanceCounters[appguid].Count {
+							instanceCounter := apps.AppInstanceCounter{Count: indexInt + 1, LastUpdated: time.Now()}
+							apps.AppInstanceCounters[appguid] = instanceCounter
 						}
 						// if key not in metricMap, add it
-						metricValues, ok := conf.InstanceMetricMap[key]
+						metricValues, ok := apps.InstanceMetricMap[key]
 						if !ok {
 							metricValues.Tags = make(map[string]float64)
-							conf.InstanceMetricMap[key] = metricValues
+							apps.InstanceMetricMap[key] = metricValues
 						}
-						for _, metricName := range conf.MetricNames {
+						for _, metricName := range apps.MetricNames {
 							value := metrics[metricName].GetValue()
 							if value != 0 {
 								metricValues.Tags[metricName] = value
@@ -156,13 +157,13 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.OrgName = orgName
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
-						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[conf.MetricCpu]
-						conf.InstanceMetricMap[key] = metricValues
+						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[apps.MetricCpu]
+						apps.InstanceMetricMap[key] = metricValues
 						conf.MapLock.Unlock()
 					} else { // these are machine-related metrics (diego-cell / router / cc )
 
 					}
-					if envelope.Tags[conf.TagOrgName] == "" {
+					if envelope.Tags[apps.TagOrgName] == "" {
 						tag2filter = envelope.Tags["job"] + "," + envelope.Tags["origin"] // these are cell-related metrics
 						for metricKey, _ := range gauge.GetMetrics() {
 							tag2filter = tag2filter + "," + metricKey
@@ -182,11 +183,11 @@ func startMT(cliConnection plugin.CliConnection) {
 		for range time.NewTicker(1 * time.Minute).C {
 			conf.MapLock.Lock()
 			var deleted = 0
-			for key, metricValues := range conf.InstanceMetricMap {
+			for key, metricValues := range apps.InstanceMetricMap {
 				if time.Since(metricValues.LastSeen) > 1*time.Minute {
-					delete(conf.InstanceMetricMap, key)
+					delete(apps.InstanceMetricMap, key)
 					delete(conf.TotalApps, strings.Split(key, "/")[0])           // yes we know, if multiple app instances, we will do unnecessary deletes
-					delete(conf.AppInstanceCounters, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(apps.AppInstanceCounters, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
 					deleted++
 				}
 			}
@@ -198,11 +199,11 @@ func startMT(cliConnection plugin.CliConnection) {
 	go func() {
 		for range time.NewTicker(10 * time.Second).C {
 			conf.MapLock.Lock()
-			for key, appInstanceCounter := range conf.AppInstanceCounters {
+			for key, appInstanceCounter := range apps.AppInstanceCounters {
 				if time.Since(appInstanceCounter.LastUpdated) > 30*time.Second && appInstanceCounter.Count > 1 {
 					//util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.InstanceMetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
-					updatedInstanceCounter := conf.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
-					conf.AppInstanceCounters[key] = updatedInstanceCounter
+					updatedInstanceCounter := apps.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
+					apps.AppInstanceCounters[key] = updatedInstanceCounter
 				}
 			}
 			conf.MapLock.Unlock()
@@ -222,9 +223,10 @@ func StartCui() {
 	}
 	defer gui.Close()
 
-	gui.SetManager(apps.NewAppView())
+	gui.SetManager(vms.NewVMView(), apps.NewAppView())
 
 	apps.SetKeyBindings(gui)
+	vms.SetKeyBindings(gui)
 	common.SetKeyBindings(gui)
 
 	//  main UI refresh loop
@@ -232,6 +234,10 @@ func StartCui() {
 		for {
 			if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
 				apps.ShowView(gui)
+			} else {
+				if conf.ActiveView == conf.VMView {
+					vms.ShowView(gui)
+				}
 			}
 		}
 	}()

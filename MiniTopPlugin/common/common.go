@@ -7,6 +7,10 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/util"
 )
 
+var (
+	ActiveSortDirection bool
+)
+
 func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("", 'h', gocui.ModNone, help)
 	_ = gui.SetKeybinding("", '?', gocui.ModNone, help)
@@ -23,10 +27,19 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func FlipSortOrder() {
-	if util.ActiveSortDirection == true {
-		util.ActiveSortDirection = false
-	} else {
-		util.ActiveSortDirection = true
+	if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
+		if ActiveSortDirection == true {
+			ActiveSortDirection = false
+		} else {
+			ActiveSortDirection = true
+		}
+	}
+	if conf.ActiveView == conf.VMView {
+		if ActiveSortDirection == true {
+			ActiveSortDirection = false
+		} else {
+			ActiveSortDirection = true
+		}
 	}
 }
 

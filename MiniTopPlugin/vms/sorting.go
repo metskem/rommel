@@ -9,9 +9,8 @@ import (
 )
 
 var (
-	ixColor                       = conf.ColorWhite
-	activeSortField     SortField = sortByIP
-	ActiveSortDirection bool
+	ixColor                   = conf.ColorWhite
+	activeSortField SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {

@@ -25,15 +25,7 @@ var (
 	spaceColor                         = conf.ColorWhite
 	activeInstancesSortField SortField = sortByCpuPerc
 	activeAppsSortField      SortField = sortByCpuPerc
-	ActiveSortDirection                = true
 )
-
-func spacePressed(g *gocui.Gui, v *gocui.View) error {
-	_ = g // get rid of compiler warning
-	_ = v // get rid of compiler warning
-	common.FlipSortOrder()
-	return nil
-}
 
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning

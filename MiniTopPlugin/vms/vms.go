@@ -165,7 +165,7 @@ func refreshViewContent(gui *gocui.Gui) {
 	lineCounter := 0
 	mainView.Title = "VMs"
 	_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %s\n", conf.ColorYellow, "IP", "LASTSEEN", "IX", conf.ColorReset))
-	for _, pairlist := range sortedBy(CellMetricMap, ActiveSortDirection, activeSortField) {
+	for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 		if passFilter(pairlist) {
 			_, _ = fmt.Fprintf(mainView, "%s%-20s%s %s%12s%s\n",
 				common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,

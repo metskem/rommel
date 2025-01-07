@@ -26,13 +26,22 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
+func SpacePressed(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	FlipSortOrder()
+	return nil
+}
+
 func FlipSortOrder() {
+	util.WriteToFile("apps.FlipSortOrder")
 	if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
 		if ActiveSortDirection == true {
 			ActiveSortDirection = false
 		} else {
 			ActiveSortDirection = true
 		}
+		util.WriteToFile(fmt.Sprintf("Apps ActiveSortDirection: %t", ActiveSortDirection))
 	}
 	if conf.ActiveView == conf.VMView {
 		if ActiveSortDirection == true {
@@ -40,6 +49,7 @@ func FlipSortOrder() {
 		} else {
 			ActiveSortDirection = true
 		}
+		util.WriteToFile(fmt.Sprintf("VMs ActiveSortDirection: %t", ActiveSortDirection))
 	}
 }
 

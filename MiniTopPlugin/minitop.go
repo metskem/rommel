@@ -210,11 +210,11 @@ func startMT(cliConnection plugin.CliConnection) {
 		}
 	}()
 
-	StartCui()
+	startCui()
 }
 
 // StartCui - Start the Console User Interface to present the metrics
-func StartCui() {
+func startCui() {
 	var err error
 	gui, err = gocui.NewGui(gocui.OutputNormal, false)
 	if err != nil {

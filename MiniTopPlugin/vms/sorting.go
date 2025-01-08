@@ -17,6 +17,7 @@ const (
 	sortByContainerCount
 	sortByCapacityAllocatedMemory
 	sortByIPTablesRuleCount
+	sortByNetInterfaceCount
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	containerCountColor                    = common.ColorWhite
 	capacityAllocatedMemoryColor           = common.ColorWhite
 	IPTablesRuleCount                      = common.ColorWhite
+	NetInterfaceCount                      = common.ColorWhite
 	activeSortField              SortField = sortByIP
 )
 
@@ -60,6 +62,8 @@ func colorSortedColumn() {
 		capacityAllocatedMemoryColor = common.ColorBlue
 	case sortByIPTablesRuleCount:
 		IPTablesRuleCount = common.ColorBlue
+	case sortByNetInterfaceCount:
+		NetInterfaceCount = common.ColorBlue
 	}
 }
 
@@ -107,6 +111,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.CapacityAllocatedMemory < p[j].Value.CapacityAllocatedMemory
 	case sortByIPTablesRuleCount:
 		return p[i].Value.IPTablesRuleCount < p[j].Value.IPTablesRuleCount
+	case sortByNetInterfaceCount:
+		return p[i].Value.NetInterfaceCount < p[j].Value.NetInterfaceCount
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

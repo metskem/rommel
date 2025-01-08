@@ -10,19 +10,21 @@ import (
 const (
 	sortByLastSeen = iota
 	sortByAge
-	sortByIx
+	//sortByIx
 	sortByIP
 	sortByContainerUsageMemory
 	sortByContainerUsageDisk
 	sortByContainerCount
+	sortByCapacityAllocatedMemory
 )
 
 var (
-	ixColor                             = common.ColorWhite
-	containerUsageMemoryColor           = common.ColorWhite
-	containerUsageDiskColor             = common.ColorWhite
-	containerCountColor                 = common.ColorWhite
-	activeSortField           SortField = sortByIP
+	//ixColor                             = common.ColorWhite
+	containerUsageMemoryColor              = common.ColorWhite
+	containerUsageDiskColor                = common.ColorWhite
+	containerCountColor                    = common.ColorWhite
+	capacityAllocatedMemoryColor           = common.ColorWhite
+	activeSortField              SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -35,15 +37,15 @@ func spacePressed(g *gocui.Gui, v *gocui.View) error {
 func colorSortedColumn() {
 	common.LastSeenColor = common.ColorWhite
 	common.AgeColor = common.ColorWhite
-	ixColor = common.ColorWhite
+	//ixColor = common.ColorWhite
 	common.IPColor = common.ColorWhite
 	switch activeSortField {
 	case sortByLastSeen:
 		common.LastSeenColor = common.ColorBlue
 	case sortByAge:
 		common.AgeColor = common.ColorBlue
-	case sortByIx:
-		ixColor = common.ColorBlue
+	//case sortByIx:
+	//	ixColor = common.ColorBlue
 	case sortByIP:
 		common.IPColor = common.ColorBlue
 	case sortByContainerUsageMemory:
@@ -52,6 +54,8 @@ func colorSortedColumn() {
 		containerUsageDiskColor = common.ColorBlue
 	case sortByContainerCount:
 		containerCountColor = common.ColorBlue
+	case sortByCapacityAllocatedMemory:
+		capacityAllocatedMemoryColor = common.ColorBlue
 	}
 }
 
@@ -95,6 +99,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.ContainerUsageDisk < p[j].Value.ContainerUsageDisk
 	case sortByContainerCount:
 		return p[i].Value.ContainerCount < p[j].Value.ContainerCount
+	case sortByCapacityAllocatedMemory:
+		return p[i].Value.CapacityAllocatedMemory < p[j].Value.CapacityAllocatedMemory
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

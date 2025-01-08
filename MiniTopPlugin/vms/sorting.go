@@ -18,6 +18,9 @@ const (
 	sortByCapacityAllocatedMemory
 	sortByIPTablesRuleCount
 	sortByNetInterfaceCount
+	sortByOverlayTxBytes
+	sortByOverlayRxBytes
+	sortByHTTPRouteCount
 )
 
 var (
@@ -28,6 +31,9 @@ var (
 	capacityAllocatedMemoryColor           = common.ColorWhite
 	IPTablesRuleCount                      = common.ColorWhite
 	NetInterfaceCount                      = common.ColorWhite
+	OverlayTxBytes                         = common.ColorWhite
+	OverlayRxBytes                         = common.ColorWhite
+	HTTPRouteCount                         = common.ColorWhite
 	activeSortField              SortField = sortByIP
 )
 
@@ -64,6 +70,12 @@ func colorSortedColumn() {
 		IPTablesRuleCount = common.ColorBlue
 	case sortByNetInterfaceCount:
 		NetInterfaceCount = common.ColorBlue
+	case sortByOverlayTxBytes:
+		OverlayTxBytes = common.ColorBlue
+	case sortByOverlayRxBytes:
+		OverlayRxBytes = common.ColorBlue
+	case sortByHTTPRouteCount:
+		OverlayRxBytes = common.ColorBlue
 	}
 }
 
@@ -113,6 +125,12 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.IPTablesRuleCount < p[j].Value.IPTablesRuleCount
 	case sortByNetInterfaceCount:
 		return p[i].Value.NetInterfaceCount < p[j].Value.NetInterfaceCount
+	case sortByOverlayTxBytes:
+		return p[i].Value.OverlayTxBytes < p[j].Value.OverlayTxBytes
+	case sortByOverlayRxBytes:
+		return p[i].Value.OverlayRxBytes < p[j].Value.OverlayRxBytes
+	case sortByHTTPRouteCount:
+		return p[i].Value.HTTPRouteCount < p[j].Value.HTTPRouteCount
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

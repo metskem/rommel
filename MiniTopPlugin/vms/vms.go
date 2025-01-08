@@ -20,6 +20,9 @@ type CellMetric struct {
 	CapacityAllocatedMemory float64
 	IPTablesRuleCount       float64
 	NetInterfaceCount       float64
+	OverlayTxBytes          float64
+	OverlayRxBytes          float64
+	HTTPRouteCount          float64
 	Tags                    map[string]float64
 }
 
@@ -42,7 +45,10 @@ var (
 	MetricCapacityAllocatedMemory = "CapacityAllocatedMemory"
 	MetricIPTablesRuleCount       = "IPTablesRuleCount"
 	MetricNetInterfaceCount       = "NetInterfaceCount"
-	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory, MetricIPTablesRuleCount, MetricNetInterfaceCount}
+	MetricOverlayTxBytes          = "OverlayTxBytes"
+	MetricOverlayRxBytes          = "OverlayRxBytes"
+	MetricHTTPRouteCount          = "HTTPRouteCount"
+	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory, MetricIPTablesRuleCount, MetricNetInterfaceCount, MetricOverlayTxBytes, MetricOverlayRxBytes, MetricHTTPRouteCount}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -144,19 +150,22 @@ func refreshViewContent(gui *gocui.Gui) {
 		common.MapLock.Lock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %10s %9s %13s %12s %s\n", common.ColorYellow,
-			"LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", "IPTablesRules", "NetIntrfcCnt", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %9s %8s %13s %12s %14s %14s %12s %s\n", common.ColorYellow,
+			"LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", "IPTablesRules", "NetIntrfcCnt", "OverlayTxBytes", "OverlayRxBytes", "HTTPRouteCnt", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%9s%s %s%13s%s %s%12s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%8s%s %s%13s%s %s%12s%s %s%14s%s %s%14s%s %s%12s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
-					capacityAllocatedMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricCapacityAllocatedMemory]), common.ColorReset,
-					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), common.ColorReset,
+					capacityAllocatedMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[MetricCapacityAllocatedMemory]), common.ColorReset,
+					containerUsageMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[MetricContainerUsageMemory]), common.ColorReset,
 					containerUsageDiskColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageDisk]), common.ColorReset,
 					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerCount]), common.ColorReset,
 					IPTablesRuleCount, util.GetFormattedUnit(pairlist.Value.Tags[MetricIPTablesRuleCount]), common.ColorReset,
 					NetInterfaceCount, util.GetFormattedUnit(pairlist.Value.Tags[MetricNetInterfaceCount]), common.ColorReset,
+					OverlayTxBytes, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayTxBytes]), common.ColorReset,
+					OverlayRxBytes, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayRxBytes]), common.ColorReset,
+					HTTPRouteCount, util.GetFormattedUnit(pairlist.Value.Tags[MetricHTTPRouteCount]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

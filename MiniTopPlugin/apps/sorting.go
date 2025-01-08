@@ -3,26 +3,25 @@ package apps
 import (
 	"github.com/awesome-gocui/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/common"
-	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"regexp"
 	"sort"
 )
 
 var (
-	appNameColor                       = conf.ColorWhite
-	cpuPercColor                       = conf.ColorWhite
-	ixColor                            = conf.ColorWhite
-	cpuTotColor                        = conf.ColorWhite
-	memoryColor                        = conf.ColorWhite
-	memoryLimitColor                   = conf.ColorWhite
-	diskColor                          = conf.ColorWhite
-	logRateColor                       = conf.ColorWhite
-	logRateLimitColor                  = conf.ColorWhite
-	entColor                           = conf.ColorWhite
-	logRepColor                        = conf.ColorWhite
-	logRtrColor                        = conf.ColorWhite
-	orgColor                           = conf.ColorWhite
-	spaceColor                         = conf.ColorWhite
+	appNameColor                       = common.ColorWhite
+	cpuPercColor                       = common.ColorWhite
+	ixColor                            = common.ColorWhite
+	cpuTotColor                        = common.ColorWhite
+	memoryColor                        = common.ColorWhite
+	memoryLimitColor                   = common.ColorWhite
+	diskColor                          = common.ColorWhite
+	logRateColor                       = common.ColorWhite
+	logRateLimitColor                  = common.ColorWhite
+	entColor                           = common.ColorWhite
+	logRepColor                        = common.ColorWhite
+	logRtrColor                        = common.ColorWhite
+	orgColor                           = common.ColorWhite
+	spaceColor                         = common.ColorWhite
 	activeInstancesSortField SortField = sortByCpuPerc
 	activeAppsSortField      SortField = sortByCpuPerc
 )
@@ -78,97 +77,97 @@ func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 }
 
 func colorSortedColumn() {
-	appNameColor = conf.ColorWhite
-	common.LastSeenColor = conf.ColorWhite
-	common.AgeColor = conf.ColorWhite
-	cpuPercColor = conf.ColorWhite
-	ixColor = conf.ColorWhite
-	cpuTotColor = conf.ColorWhite
-	memoryColor = conf.ColorWhite
-	memoryLimitColor = conf.ColorWhite
-	diskColor = conf.ColorWhite
-	logRateColor = conf.ColorWhite
-	logRateLimitColor = conf.ColorWhite
-	entColor = conf.ColorWhite
-	common.IPColor = conf.ColorWhite
-	logRepColor = conf.ColorWhite
-	logRtrColor = conf.ColorWhite
-	orgColor = conf.ColorWhite
-	spaceColor = conf.ColorWhite
+	appNameColor = common.ColorWhite
+	common.LastSeenColor = common.ColorWhite
+	common.AgeColor = common.ColorWhite
+	cpuPercColor = common.ColorWhite
+	ixColor = common.ColorWhite
+	cpuTotColor = common.ColorWhite
+	memoryColor = common.ColorWhite
+	memoryLimitColor = common.ColorWhite
+	diskColor = common.ColorWhite
+	logRateColor = common.ColorWhite
+	logRateLimitColor = common.ColorWhite
+	entColor = common.ColorWhite
+	common.IPColor = common.ColorWhite
+	logRepColor = common.ColorWhite
+	logRtrColor = common.ColorWhite
+	orgColor = common.ColorWhite
+	spaceColor = common.ColorWhite
 	if common.ActiveView == common.AppInstanceView {
 		switch activeInstancesSortField {
 		case sortByAppName:
-			appNameColor = conf.ColorBlue
+			appNameColor = common.ColorBlue
 		case sortByLastSeen:
-			common.LastSeenColor = conf.ColorBlue
+			common.LastSeenColor = common.ColorBlue
 		case sortByAge:
-			common.AgeColor = conf.ColorBlue
+			common.AgeColor = common.ColorBlue
 		case sortByIx:
-			ixColor = conf.ColorBlue
+			ixColor = common.ColorBlue
 		case sortByCpuPerc:
-			cpuPercColor = conf.ColorBlue
+			cpuPercColor = common.ColorBlue
 		case sortByCpuTot:
-			cpuTotColor = conf.ColorBlue
+			cpuTotColor = common.ColorBlue
 		case sortByMemory:
-			memoryColor = conf.ColorBlue
+			memoryColor = common.ColorBlue
 		case sortByMemoryLimit:
-			memoryLimitColor = conf.ColorBlue
+			memoryLimitColor = common.ColorBlue
 		case sortByDisk:
-			diskColor = conf.ColorBlue
+			diskColor = common.ColorBlue
 		case sortByLogRate:
-			logRateColor = conf.ColorBlue
+			logRateColor = common.ColorBlue
 		case sortByLogRateLimit:
-			logRateLimitColor = conf.ColorBlue
+			logRateLimitColor = common.ColorBlue
 		case sortByIP:
-			common.IPColor = conf.ColorBlue
+			common.IPColor = common.ColorBlue
 		case sortByEntitlement:
-			entColor = conf.ColorBlue
+			entColor = common.ColorBlue
 		case sortByLogRep:
-			logRepColor = conf.ColorBlue
+			logRepColor = common.ColorBlue
 		case sortByLogRtr:
-			logRtrColor = conf.ColorBlue
+			logRtrColor = common.ColorBlue
 		case sortByOrg:
-			orgColor = conf.ColorBlue
+			orgColor = common.ColorBlue
 		case sortBySpace:
-			spaceColor = conf.ColorBlue
+			spaceColor = common.ColorBlue
 		}
 	}
 	if common.ActiveView == common.AppView {
 		switch activeAppsSortField {
 		case sortByAppName:
-			appNameColor = conf.ColorBlue
+			appNameColor = common.ColorBlue
 		case sortByLastSeen:
-			common.LastSeenColor = conf.ColorBlue
+			common.LastSeenColor = common.ColorBlue
 		case sortByAge:
-			common.AgeColor = conf.ColorBlue
+			common.AgeColor = common.ColorBlue
 		case sortByIx:
-			ixColor = conf.ColorBlue
+			ixColor = common.ColorBlue
 		case sortByCpuPerc:
-			cpuPercColor = conf.ColorBlue
+			cpuPercColor = common.ColorBlue
 		case sortByCpuTot:
-			cpuTotColor = conf.ColorBlue
+			cpuTotColor = common.ColorBlue
 		case sortByMemory:
-			memoryColor = conf.ColorBlue
+			memoryColor = common.ColorBlue
 		case sortByMemoryLimit:
-			memoryLimitColor = conf.ColorBlue
+			memoryLimitColor = common.ColorBlue
 		case sortByDisk:
-			diskColor = conf.ColorBlue
+			diskColor = common.ColorBlue
 		case sortByLogRate:
-			logRateColor = conf.ColorBlue
+			logRateColor = common.ColorBlue
 		case sortByLogRateLimit:
-			logRateLimitColor = conf.ColorBlue
+			logRateLimitColor = common.ColorBlue
 		case sortByIP:
-			common.IPColor = conf.ColorBlue
+			common.IPColor = common.ColorBlue
 		case sortByEntitlement:
-			entColor = conf.ColorBlue
+			entColor = common.ColorBlue
 		case sortByLogRep:
-			logRepColor = conf.ColorBlue
+			logRepColor = common.ColorBlue
 		case sortByLogRtr:
-			logRtrColor = conf.ColorBlue
+			logRtrColor = common.ColorBlue
 		case sortByOrg:
-			orgColor = conf.ColorBlue
+			orgColor = common.ColorBlue
 		case sortBySpace:
-			spaceColor = conf.ColorBlue
+			spaceColor = common.ColorBlue
 		}
 	}
 }

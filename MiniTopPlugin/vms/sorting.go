@@ -3,7 +3,6 @@ package vms
 import (
 	"github.com/awesome-gocui/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/common"
-	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"regexp"
 	"sort"
 )
@@ -18,9 +17,9 @@ const (
 )
 
 var (
-	ixColor                             = conf.ColorWhite
-	containerUsageMemoryColor           = conf.ColorWhite
-	containerCountColor                 = conf.ColorWhite
+	ixColor                             = common.ColorWhite
+	containerUsageMemoryColor           = common.ColorWhite
+	containerCountColor                 = common.ColorWhite
 	activeSortField           SortField = sortByIP
 )
 
@@ -32,23 +31,23 @@ func spacePressed(g *gocui.Gui, v *gocui.View) error {
 }
 
 func colorSortedColumn() {
-	common.LastSeenColor = conf.ColorWhite
-	common.AgeColor = conf.ColorWhite
-	ixColor = conf.ColorWhite
-	common.IPColor = conf.ColorWhite
+	common.LastSeenColor = common.ColorWhite
+	common.AgeColor = common.ColorWhite
+	ixColor = common.ColorWhite
+	common.IPColor = common.ColorWhite
 	switch activeSortField {
 	case sortByLastSeen:
-		common.LastSeenColor = conf.ColorBlue
+		common.LastSeenColor = common.ColorBlue
 	case sortByAge:
-		common.AgeColor = conf.ColorBlue
+		common.AgeColor = common.ColorBlue
 	case sortByIx:
-		ixColor = conf.ColorBlue
+		ixColor = common.ColorBlue
 	case sortByIP:
-		common.IPColor = conf.ColorBlue
+		common.IPColor = common.ColorBlue
 	case sortByContainerUsageMemory:
-		containerUsageMemoryColor = conf.ColorBlue
+		containerUsageMemoryColor = common.ColorBlue
 	case sortByContainerCount:
-		containerCountColor = conf.ColorBlue
+		containerCountColor = common.ColorBlue
 	}
 }
 

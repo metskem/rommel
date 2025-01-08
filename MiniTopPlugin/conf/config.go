@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	ApiAddr string
-	ShardId = "MiniTopPlugin"
+	ApiAddr      string
+	ShardId      = "MiniTopPlugin"
+	IntervalSecs = 1
 )
 
 func EnvironmentComplete(cliConnection plugin.CliConnection) bool {

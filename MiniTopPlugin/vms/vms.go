@@ -136,14 +136,14 @@ func refreshViewContent(gui *gocui.Gui) {
 		common.MapLock.Lock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %9s %9s %s\n", conf.ColorYellow, "LASTSEEN", "IP", "CntrMemUse", "CntrCnt", conf.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %9s %9s %s\n", common.ColorYellow, "LASTSEEN", "IP", "CntrMemUse", "CntrCnt", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
 				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%10s%s %s%9s%s\n",
-					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
-					common.IPColor, pairlist.Value.IP, conf.ColorReset,
-					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), conf.ColorReset,
-					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerCount]), conf.ColorReset,
+					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
+					common.IPColor, pairlist.Value.IP, common.ColorReset,
+					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), common.ColorReset,
+					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerCount]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

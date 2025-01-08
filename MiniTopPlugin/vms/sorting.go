@@ -13,12 +13,14 @@ const (
 	sortByIx
 	sortByIP
 	sortByContainerUsageMemory
+	sortByContainerUsageDisk
 	sortByContainerCount
 )
 
 var (
 	ixColor                             = common.ColorWhite
 	containerUsageMemoryColor           = common.ColorWhite
+	containerUsageDiskColor             = common.ColorWhite
 	containerCountColor                 = common.ColorWhite
 	activeSortField           SortField = sortByIP
 )
@@ -46,6 +48,8 @@ func colorSortedColumn() {
 		common.IPColor = common.ColorBlue
 	case sortByContainerUsageMemory:
 		containerUsageMemoryColor = common.ColorBlue
+	case sortByContainerUsageDisk:
+		containerUsageDiskColor = common.ColorBlue
 	case sortByContainerCount:
 		containerCountColor = common.ColorBlue
 	}
@@ -87,6 +91,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.IP < p[j].Value.IP
 	case sortByContainerUsageMemory:
 		return p[i].Value.ContainerUsageMemory < p[j].Value.ContainerUsageMemory
+	case sortByContainerUsageDisk:
+		return p[i].Value.ContainerUsageDisk < p[j].Value.ContainerUsageDisk
 	case sortByContainerCount:
 		return p[i].Value.ContainerCount < p[j].Value.ContainerCount
 	}

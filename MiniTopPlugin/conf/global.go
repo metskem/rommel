@@ -11,10 +11,6 @@ const (
 	ColorYellow = "\033[33m"
 	ColorBlue   = "\033[36m"
 	ColorWhite  = "\033[97m"
-
-	AppInstanceView int = iota
-	AppView
-	VMView
 )
 
 var (
@@ -25,14 +21,9 @@ var (
 	TotalEnvelopesRepPerSec float64
 	TotalEnvelopesRtr       float64
 	TotalEnvelopesRtrPerSec float64
-	TotalApps               = make(map[string]bool)
-	TotalMemoryUsed         float64
-	TotalMemoryAllocated    float64
-	TotalLogRateUsed        float64
 	ShowFilter              = false
 	ShowHelp                = false
 	StartTime               = time.Now()
 	FilterStrings           = make(map[int]string)
 	IntervalSecs            = 1
-	ActiveView              = AppInstanceView
 )

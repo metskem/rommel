@@ -7,14 +7,22 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/util"
 )
 
+const (
+	AppInstanceView int = iota
+	AppView
+	VMView
+)
+
 var (
 	ActiveSortDirection bool
+	ActiveView          = AppInstanceView
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("", 'h', gocui.ModNone, help)
 	_ = gui.SetKeybinding("", '?', gocui.ModNone, help)
 	_ = gui.SetKeybinding("", 'q', gocui.ModNone, quit)
+	_ = gui.SetKeybinding("", 't', gocui.ModNone, toggleView)
 	_ = gui.SetKeybinding("HelpView", gocui.KeyEnter, gocui.ModNone, handleEnter)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, handleEnter)
 }
@@ -34,8 +42,7 @@ func SpacePressed(g *gocui.Gui, v *gocui.View) error {
 }
 
 func FlipSortOrder() {
-	util.WriteToFile("apps.FlipSortOrder")
-	if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
+	if ActiveView == AppView || ActiveView == AppInstanceView {
 		if ActiveSortDirection == true {
 			ActiveSortDirection = false
 		} else {
@@ -43,7 +50,7 @@ func FlipSortOrder() {
 		}
 		util.WriteToFile(fmt.Sprintf("Apps ActiveSortDirection: %t", ActiveSortDirection))
 	}
-	if conf.ActiveView == conf.VMView {
+	if ActiveView == VMView {
 		if ActiveSortDirection == true {
 			ActiveSortDirection = false
 		} else {
@@ -67,21 +74,21 @@ func help(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func ToggleView(g *gocui.Gui, v *gocui.View) error {
+func toggleView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if conf.ActiveView == conf.AppInstanceView {
-		conf.ActiveView = conf.AppView
+	if ActiveView == AppInstanceView {
+		ActiveView = AppView
 	} else {
-		if conf.ActiveView == conf.AppView {
-			conf.ActiveView = conf.VMView
+		if ActiveView == AppView {
+			ActiveView = VMView
 		} else {
-			if conf.ActiveView == conf.VMView {
-				conf.ActiveView = conf.AppInstanceView
+			if ActiveView == VMView {
+				ActiveView = AppInstanceView
 			}
 		}
 	}
-	util.WriteToFile(fmt.Sprintf("ActiveView: %d", conf.ActiveView))
+	util.WriteToFile(fmt.Sprintf("ActiveView: %d", ActiveView))
 	return nil
 }
 

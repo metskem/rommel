@@ -35,7 +35,6 @@ func SetKeyBindings(gui *gocui.Gui) {
 	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, common.ShowFilterView)
-	_ = gui.SetKeybinding("VMView", 't', gocui.ModNone, common.ToggleView)
 	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -63,7 +62,7 @@ func ShowView(gui *gocui.Gui) {
 	totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
 
 	// update memory summaries
-	var totalMemUsed, totalMemAllocated, totalLogRateUsed float64
+	var totalMemUsed float64
 	conf.MapLock.Lock()
 	CellMetricMap = make(map[string]CellMetric)
 	for _, metric := range CellMetricMap {
@@ -71,16 +70,11 @@ func ShowView(gui *gocui.Gui) {
 		updateCellMetrics(&metric)
 	}
 	conf.MapLock.Unlock()
-	conf.TotalMemoryUsed = totalMemUsed
-	conf.TotalMemoryAllocated = totalMemAllocated
-	conf.TotalLogRateUsed = totalLogRateUsed
 
 	gui.Update(func(g *gocui.Gui) error {
 		refreshViewContent(g)
 		return nil
 	})
-
-	time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)
 
 	conf.TotalEnvelopesPerSec = (conf.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
 	conf.TotalEnvelopesRepPerSec = (conf.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
@@ -95,7 +89,7 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 }
 
 func layout(g *gocui.Gui) (err error) {
-	if conf.ActiveView != conf.VMView {
+	if common.ActiveView != common.VMView {
 		return nil
 	}
 	util.WriteToFile("VMs layout")
@@ -155,10 +149,7 @@ func refreshViewContent(gui *gocui.Gui) {
 		util.GetFormattedUnit(conf.TotalEnvelopesRtr),
 		util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec),
 		util.GetFormattedUnit(conf.TotalEnvelopesRep),
-		util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec),
-		util.GetFormattedUnit(conf.TotalLogRateUsed/8),
-		util.GetFormattedUnit(conf.TotalMemoryAllocated),
-		util.GetFormattedUnit(conf.TotalMemoryUsed))
+		util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec))
 
 	mainView.Clear()
 	conf.MapLock.Lock()

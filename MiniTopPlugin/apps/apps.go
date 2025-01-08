@@ -58,6 +58,10 @@ var (
 	TagOrigin            = "origin"
 	TagOriginValueRep    = "rep"
 	TagOriginValueRtr    = "gorouter"
+	TotalApps            = make(map[string]bool)
+	totalMemoryUsed      float64
+	totalMemoryAllocated float64
+	totalLogRateUsed     float64
 
 	MetricNames = []string{MetricCpu, metricAge, metricCpuEntitlement, metricDisk, metricMemory, metricMemoryQuota, metricLogRate, metricLogRateLimit}
 )
@@ -67,7 +71,6 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("", gocui.KeySpace, gocui.ModNone, common.SpacePressed)
 	_ = gui.SetKeybinding("", 'f', gocui.ModNone, common.ShowFilterView)
-	_ = gui.SetKeybinding("", 't', gocui.ModNone, common.ToggleView)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -94,26 +97,24 @@ func ShowView(gui *gocui.Gui) {
 	totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
 
 	// update memory summaries
-	var totalMemUsed, totalMemAllocated, totalLogRateUsed float64
+	var totalMemUsed, totalMemAllocated, totalLogRtUsed float64
 	conf.MapLock.Lock()
 	AppMetricMap = make(map[string]AppOrInstanceMetric)
 	for _, metric := range InstanceMetricMap {
 		totalMemUsed += metric.Tags[metricMemory]
 		totalMemAllocated += metric.Tags[metricMemoryQuota]
-		totalLogRateUsed += metric.Tags[metricLogRate]
+		totalLogRtUsed += metric.Tags[metricLogRate]
 		updateAppMetrics(&metric)
 	}
 	conf.MapLock.Unlock()
-	conf.TotalMemoryUsed = totalMemUsed
-	conf.TotalMemoryAllocated = totalMemAllocated
-	conf.TotalLogRateUsed = totalLogRateUsed
+	totalMemoryUsed = totalMemUsed
+	totalMemoryAllocated = totalMemAllocated
+	totalLogRateUsed = totalLogRtUsed
 
 	gui.Update(func(g *gocui.Gui) error {
 		refreshViewContent(g)
 		return nil
 	})
-
-	time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)
 
 	conf.TotalEnvelopesPerSec = (conf.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
 	conf.TotalEnvelopesRepPerSec = (conf.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
@@ -130,7 +131,7 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 }
 
 func Layout(g *gocui.Gui) (err error) {
-	if conf.ActiveView != conf.AppView && conf.ActiveView != conf.AppInstanceView {
+	if common.ActiveView != common.AppView && common.ActiveView != common.AppInstanceView {
 		return nil
 	}
 	util.WriteToFile("APP/Instances layout")
@@ -199,16 +200,16 @@ func refreshViewContent(gui *gocui.Gui) {
 		util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec),
 		util.GetFormattedUnit(conf.TotalEnvelopesRep),
 		util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec),
-		util.GetFormattedUnit(conf.TotalLogRateUsed/8),
-		len(conf.TotalApps),
+		util.GetFormattedUnit(totalLogRateUsed/8),
+		len(TotalApps),
 		len(InstanceMetricMap),
-		util.GetFormattedUnit(conf.TotalMemoryAllocated),
-		util.GetFormattedUnit(conf.TotalMemoryUsed))
+		util.GetFormattedUnit(totalMemoryAllocated),
+		util.GetFormattedUnit(totalMemoryUsed))
 
 	mainView.Clear()
 	conf.MapLock.Lock()
 	lineCounter := 0
-	if conf.ActiveView == conf.AppInstanceView {
+	if common.ActiveView == common.AppInstanceView {
 		mainView.Title = "Application Instances"
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range sortedBy(InstanceMetricMap, common.ActiveSortDirection, activeInstancesSortField) {
@@ -238,7 +239,7 @@ func refreshViewContent(gui *gocui.Gui) {
 			}
 		}
 	}
-	if conf.ActiveView == conf.AppView {
+	if common.ActiveView == common.AppView {
 		mainView.Title = "Applications"
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %5s %5s %9s %8s %7s %8s %-25s %-35s%s\n", conf.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
 		for _, pairlist := range sortedBy(AppMetricMap, common.ActiveSortDirection, activeAppsSortField) {

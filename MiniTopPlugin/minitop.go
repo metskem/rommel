@@ -130,7 +130,7 @@ func startMT(cliConnection plugin.CliConnection) {
 				if gauge := envelope.GetGauge(); gauge != nil {
 					//util.WriteToFile(fmt.Sprintf("gauge: %v / Tags: %v", gauge, envelope.GetTags()))
 					if orgName != "" { // these are app-related metrics
-						conf.TotalApps[appguid] = true // just count the apps (not instances)
+						apps.TotalApps[appguid] = true // just count the apps (not instances)
 						metrics := gauge.GetMetrics()
 						indexInt, _ := strconv.Atoi(index)
 						conf.MapLock.Lock()
@@ -186,7 +186,7 @@ func startMT(cliConnection plugin.CliConnection) {
 			for key, metricValues := range apps.InstanceMetricMap {
 				if time.Since(metricValues.LastSeen) > 1*time.Minute {
 					delete(apps.InstanceMetricMap, key)
-					delete(conf.TotalApps, strings.Split(key, "/")[0])           // yes we know, if multiple app instances, we will do unnecessary deletes
+					delete(apps.TotalApps, strings.Split(key, "/")[0])           // yes we know, if multiple app instances, we will do unnecessary deletes
 					delete(apps.AppInstanceCounters, strings.Split(key, "/")[0]) // yes we know, if multiple app instances, we will do unnecessary deletes
 					deleted++
 				}
@@ -223,8 +223,6 @@ func startCui() {
 	}
 	defer gui.Close()
 
-	gui.SetManager(vms.NewVMView(), apps.NewAppView())
-
 	apps.SetKeyBindings(gui)
 	vms.SetKeyBindings(gui)
 	common.SetKeyBindings(gui)
@@ -232,13 +230,20 @@ func startCui() {
 	//  main UI refresh loop
 	go func() {
 		for {
-			if conf.ActiveView == conf.AppView || conf.ActiveView == conf.AppInstanceView {
+			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
+				gui.SetManager(apps.NewAppView())
+				apps.SetKeyBindings(gui)
+				common.SetKeyBindings(gui)
 				apps.ShowView(gui)
 			} else {
-				if conf.ActiveView == conf.VMView {
+				if common.ActiveView == common.VMView {
+					gui.SetManager(vms.NewVMView())
+					vms.SetKeyBindings(gui)
+					common.SetKeyBindings(gui)
 					vms.ShowView(gui)
 				}
 			}
+			time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)
 		}
 	}()
 

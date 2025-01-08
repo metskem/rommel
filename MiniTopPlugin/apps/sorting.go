@@ -37,13 +37,13 @@ func arrowRight(g *gocui.Gui, v *gocui.View) error {
 		activeAppsSortField++
 	}
 	// when in instance view mode, there is no Ix column, so skip it
-	if conf.ActiveView == conf.AppInstanceView {
+	if common.ActiveView == common.AppInstanceView {
 		if activeInstancesSortField == sortByIx {
 			activeInstancesSortField++
 		}
 	}
 	// when in app view mode, the Age and IP columns are not there, so skip them
-	if conf.ActiveView == conf.AppView {
+	if common.ActiveView == common.AppView {
 		if activeAppsSortField == sortByAge || activeAppsSortField == sortByIP {
 			activeAppsSortField++
 		}
@@ -62,13 +62,13 @@ func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 		activeAppsSortField--
 	}
 	// when in instance view mode, there is no Ix column, so skip it
-	if conf.ActiveView == conf.AppInstanceView {
+	if common.ActiveView == common.AppInstanceView {
 		if activeInstancesSortField == sortByIx {
 			activeInstancesSortField--
 		}
 	}
 	// when in app view mode, the Age and IP columns are not there, so skip them
-	if conf.ActiveView == conf.AppView {
+	if common.ActiveView == common.AppView {
 		if activeAppsSortField == sortByAge || activeAppsSortField == sortByIP {
 			activeAppsSortField--
 		}
@@ -95,7 +95,7 @@ func colorSortedColumn() {
 	logRtrColor = conf.ColorWhite
 	orgColor = conf.ColorWhite
 	spaceColor = conf.ColorWhite
-	if conf.ActiveView == conf.AppInstanceView {
+	if common.ActiveView == common.AppInstanceView {
 		switch activeInstancesSortField {
 		case sortByAppName:
 			appNameColor = conf.ColorBlue
@@ -133,7 +133,7 @@ func colorSortedColumn() {
 			spaceColor = conf.ColorBlue
 		}
 	}
-	if conf.ActiveView == conf.AppView {
+	if common.ActiveView == common.AppView {
 		switch activeAppsSortField {
 		case sortByAppName:
 			appNameColor = conf.ColorBlue

@@ -145,15 +145,12 @@ func refreshViewContent(gui *gocui.Gui) {
 		summaryView.Clear()
 		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n",
 			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9))
-	} else {
-		util.WriteToFile("summaryView is nil")
 	}
 	if mainView != nil {
 		mainView.Clear()
 		common.MapLock.Lock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		util.WriteToFile(fmt.Sprintf("CellMetricMap size: %d", len(CellMetricMap)))
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %36s %10s %s\n", conf.ColorYellow, "LASTSEEN", "IP", "IX", "CntnrMemUse", conf.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
@@ -167,13 +164,9 @@ func refreshViewContent(gui *gocui.Gui) {
 					//	don't render lines that don't fit on the screen
 					break
 				}
-			} else {
-				util.WriteToFile(fmt.Sprintf("Filter did not pass for %s", pairlist.Key))
 			}
 		}
 		common.MapLock.Unlock()
-	} else {
-		util.WriteToFile("mainView is nil")
 	}
 }
 

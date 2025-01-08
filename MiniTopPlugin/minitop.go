@@ -169,7 +169,6 @@ func startMT(cliConnection plugin.CliConnection) {
 							if !ok {
 								metricValues.Tags = make(map[string]float64)
 								vms.CellMetricMap[key] = metricValues
-								util.WriteToFile(fmt.Sprintf("added cell: %s", key))
 							}
 							for _, metricName := range vms.MetricNames {
 								value := metrics[metricName].GetValue()
@@ -246,17 +245,24 @@ func startCui() {
 
 	//  main UI refresh loop
 	go func() {
+		gui.SetManager(vms.NewVMView()) // we startup with the VMView
 		for {
 			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
-				gui.SetManager(apps.NewAppView())
 				apps.SetKeyBindings(gui)
 				common.SetKeyBindings(gui)
+				if common.ViewToggled {
+					gui.SetManager(apps.NewAppView())
+					common.ViewToggled = false
+				}
 				apps.ShowView(gui)
 			} else {
 				if common.ActiveView == common.VMView {
-					gui.SetManager(vms.NewVMView())
 					vms.SetKeyBindings(gui)
 					common.SetKeyBindings(gui)
+					if common.ViewToggled {
+						gui.SetManager(vms.NewVMView())
+						common.ViewToggled = false
+					}
 					vms.ShowView(gui)
 				}
 			}

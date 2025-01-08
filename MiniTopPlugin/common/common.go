@@ -28,6 +28,7 @@ var (
 	FilterStrings           = make(map[int]string)
 	ActiveSortDirection     bool
 	ActiveView              = VMView
+	ViewToggled             bool
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -89,6 +90,7 @@ func help(g *gocui.Gui, v *gocui.View) error {
 func toggleView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
+	ViewToggled = true
 	if ActiveView == AppInstanceView {
 		ActiveView = AppView
 	} else {

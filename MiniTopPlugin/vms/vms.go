@@ -18,6 +18,7 @@ type CellMetric struct {
 	ContainerUsageDisk      float64
 	ContainerCount          float64
 	CapacityAllocatedMemory float64
+	IPTablesRuleCount       float64
 	Tags                    map[string]float64
 }
 
@@ -38,7 +39,8 @@ var (
 	MetricContainerUsageDisk      = "ContainerUsageDisk"
 	MetricContainerCount          = "ContainerCount"
 	MetricCapacityAllocatedMemory = "CapacityAllocatedMemory"
-	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory}
+	MetricIPTablesRuleCount       = "IPTablesRuleCount"
+	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory, MetricIPTablesRuleCount}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -140,16 +142,17 @@ func refreshViewContent(gui *gocui.Gui) {
 		common.MapLock.Lock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %10s %9s %s\n", common.ColorYellow, "LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %10s %9s %13s %s\n", common.ColorYellow, "LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", "IPTablesRules", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%9s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%9s%s %s%13s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
 					capacityAllocatedMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricCapacityAllocatedMemory]), common.ColorReset,
 					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), common.ColorReset,
 					containerUsageDiskColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageDisk]), common.ColorReset,
 					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerCount]), common.ColorReset,
+					IPTablesRuleCount, util.GetFormattedUnit(pairlist.Value.Tags[MetricIPTablesRuleCount]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

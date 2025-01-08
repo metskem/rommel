@@ -179,21 +179,15 @@ func startMT(cliConnection plugin.CliConnection) {
 							metricValues.IP = envelope.Tags[vms.TagIP]
 							metricValues.Index = envelope.Tags[vms.TagIx]
 							metricValues.ContainerUsageMemory = metricValues.Tags[vms.MetricContainerUsageMemory]
+							metricValues.CapacityAllocatedMemory = metricValues.Tags[vms.MetricCapacityAllocatedMemory]
+							metricValues.ContainerUsageDisk = metricValues.Tags[vms.MetricContainerUsageDisk]
+							metricValues.ContainerCount = metricValues.Tags[vms.MetricContainerCount]
+							metricValues.IPTablesRuleCount = metricValues.Tags[vms.MetricIPTablesRuleCount]
 							metricValues.LastSeen = time.Now()
 							vms.CellMetricMap[key] = metricValues
 						}
 					}
 					common.MapLock.Unlock()
-					//if envelope.Tags[apps.TagOrgName] == "" {
-					//	tag2filter = envelope.Tags["job"] + "," + envelope.Tags["origin"] // these are cell-related metrics
-					//	for metricKey, _ := range gauge.GetMetrics() {
-					//		tag2filter = tag2filter + "," + metricKey
-					//		if !filterCache[tag2filter] {
-					//			//util.WriteToFile(fmt.Sprintf("%s", tag2filter))
-					//			filterCache[tag2filter] = true
-					//		}
-					//	}
-					//}
 				}
 			}
 		}

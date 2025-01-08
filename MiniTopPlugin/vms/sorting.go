@@ -8,9 +8,19 @@ import (
 	"sort"
 )
 
+const (
+	sortByLastSeen = iota
+	sortByAge
+	sortByIx
+	sortByIP
+	sortByContainerUsageMemory
+	sortByContainerCount
+)
+
 var (
 	ixColor                             = conf.ColorWhite
 	containerUsageMemoryColor           = conf.ColorWhite
+	containerCountColor                 = conf.ColorWhite
 	activeSortField           SortField = sortByIP
 )
 
@@ -37,19 +47,13 @@ func colorSortedColumn() {
 		common.IPColor = conf.ColorBlue
 	case sortByContainerUsageMemory:
 		containerUsageMemoryColor = conf.ColorBlue
+	case sortByContainerCount:
+		containerCountColor = conf.ColorBlue
 	}
 }
 
 // based on https://stackoverflow.com/questions/18695346/how-to-sort-a-mapstringint-by-its-values
 type SortField int
-
-const (
-	sortByLastSeen = iota
-	sortByAge
-	sortByIx
-	sortByIP
-	sortByContainerUsageMemory
-)
 
 func sortedBy(metricMap map[string]CellMetric, reverse bool, sortField SortField) PairList {
 	pairList := make(PairList, len(metricMap))
@@ -84,6 +88,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.IP < p[j].Value.IP
 	case sortByContainerUsageMemory:
 		return p[i].Value.ContainerUsageMemory < p[j].Value.ContainerUsageMemory
+	case sortByContainerCount:
+		return p[i].Value.ContainerCount < p[j].Value.ContainerCount
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

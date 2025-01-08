@@ -15,6 +15,7 @@ type CellMetric struct {
 	Index                string
 	IP                   string
 	ContainerUsageMemory float64
+	ContainerCount       float64
 	Tags                 map[string]float64
 }
 
@@ -32,7 +33,8 @@ var (
 	metricIP                   = "IP"
 	metricAge                  = "container_age"
 	MetricContainerUsageMemory = "ContainerUsageMemory"
-	MetricNames                = []string{metricIP, metricAge, MetricContainerUsageMemory}
+	MetricContainerCount       = "ContainerCount"
+	MetricNames                = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerCount}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -61,28 +63,11 @@ func (a *VMView) Layout(g *gocui.Gui) error {
 
 func ShowView(gui *gocui.Gui) {
 	colorSortedColumn()
-	totalEnvelopesPrev := common.TotalEnvelopes
-	totalEnvelopesRepPrev := common.TotalEnvelopesRep
-	totalEnvelopesRtrPrev := common.TotalEnvelopesRtr
-
-	// update memory summaries
-	var totalMemUsed float64
-	common.MapLock.Lock()
-	//CellMetricMap = make(map[string]CellMetric)
-	for _, metric := range CellMetricMap {
-		totalMemUsed += metric.Tags[metricIP]
-		updateCellMetrics(&metric)
-	}
-	common.MapLock.Unlock()
 
 	gui.Update(func(g *gocui.Gui) error {
 		refreshViewContent(g)
 		return nil
 	})
-
-	common.TotalEnvelopesPerSec = (common.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
-	common.TotalEnvelopesRepPerSec = (common.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
-	common.TotalEnvelopesRtrPerSec = (common.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
 }
 
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
@@ -151,14 +136,15 @@ func refreshViewContent(gui *gocui.Gui) {
 		common.MapLock.Lock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %36s %10s %s\n", conf.ColorYellow, "LASTSEEN", "IP", "IX", "CntnrMemUse", conf.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %9s %9s %s\n", conf.ColorYellow, "LASTSEEN", "IP", "CntrMemUse", "CntrCnt", conf.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%30s%s %s%10s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%10s%s %s%9s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), conf.ColorReset,
 					common.IPColor, pairlist.Value.IP, conf.ColorReset,
-					ixColor, pairlist.Value.Index, conf.ColorReset,
-					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), conf.ColorReset)
+					containerUsageMemoryColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerUsageMemory]), conf.ColorReset,
+					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[MetricContainerCount]), conf.ColorReset,
+				)
 				lineCounter++
 				if lineCounter > maxY-7 {
 					//	don't render lines that don't fit on the screen
@@ -167,18 +153,5 @@ func refreshViewContent(gui *gocui.Gui) {
 			}
 		}
 		common.MapLock.Unlock()
-	}
-}
-
-// UpdateCellMetrics - Populate the CellMap with the latest cell metrics. */
-func updateCellMetrics(cellMetric *CellMetric) {
-	cellMetric = &CellMetric{
-		LastSeen: cellMetric.LastSeen,
-		Index:    cellMetric.Index,
-		IP:       cellMetric.IP,
-		Tags:     make(map[string]float64),
-	}
-	for _, metricName := range MetricNames {
-		cellMetric.Tags[metricName] = cellMetric.Tags[metricName]
 	}
 }

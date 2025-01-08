@@ -262,16 +262,16 @@ func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func passFilter(pairList Pair) bool {
 	filterPassed := true
-	filterRegex := regexp.MustCompile(conf.FilterStrings[filterFieldAppName])
-	if !(conf.FilterStrings[filterFieldAppName] == "") && !filterRegex.MatchString(pairList.Value.AppName) {
+	filterRegex := regexp.MustCompile(common.FilterStrings[filterFieldAppName])
+	if !(common.FilterStrings[filterFieldAppName] == "") && !filterRegex.MatchString(pairList.Value.AppName) {
 		filterPassed = false
 	}
-	filterRegex = regexp.MustCompile(conf.FilterStrings[filterFieldSpace])
-	if !(conf.FilterStrings[filterFieldSpace] == "") && !filterRegex.MatchString(pairList.Value.SpaceName) {
+	filterRegex = regexp.MustCompile(common.FilterStrings[filterFieldSpace])
+	if !(common.FilterStrings[filterFieldSpace] == "") && !filterRegex.MatchString(pairList.Value.SpaceName) {
 		filterPassed = false
 	}
-	filterRegex = regexp.MustCompile(conf.FilterStrings[filterFieldOrg])
-	if !(conf.FilterStrings[filterFieldOrg] == "") && !filterRegex.MatchString(pairList.Value.OrgName) {
+	filterRegex = regexp.MustCompile(common.FilterStrings[filterFieldOrg])
+	if !(common.FilterStrings[filterFieldOrg] == "") && !filterRegex.MatchString(pairList.Value.OrgName) {
 		filterPassed = false
 	}
 	return filterPassed

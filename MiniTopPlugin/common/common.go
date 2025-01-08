@@ -3,8 +3,9 @@ package common
 import (
 	"fmt"
 	"github.com/awesome-gocui/gocui"
-	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
+	"sync"
+	"time"
 )
 
 const (
@@ -14,8 +15,19 @@ const (
 )
 
 var (
-	ActiveSortDirection bool
-	ActiveView          = AppInstanceView
+	MapLock                 sync.Mutex
+	TotalEnvelopes          float64
+	TotalEnvelopesPerSec    float64
+	TotalEnvelopesRep       float64
+	TotalEnvelopesRepPerSec float64
+	TotalEnvelopesRtr       float64
+	TotalEnvelopesRtrPerSec float64
+	ShowFilter              = false
+	ShowHelp                = false
+	StartTime               = time.Now()
+	FilterStrings           = make(map[int]string)
+	ActiveSortDirection     bool
+	ActiveView              = VMView
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -63,14 +75,14 @@ func FlipSortOrder() {
 func ShowFilterView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	conf.ShowFilter = true
+	ShowFilter = true
 	return nil
 }
 
 func help(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	conf.ShowHelp = true
+	ShowHelp = true
 	return nil
 }
 
@@ -94,8 +106,8 @@ func toggleView(g *gocui.Gui, v *gocui.View) error {
 
 func handleEnter(g *gocui.Gui, v *gocui.View) error {
 	_ = v // get rid of compiler warning
-	conf.ShowFilter = false
-	conf.ShowHelp = false
+	ShowFilter = false
+	ShowHelp = false
 	_ = g.DeleteView("FilterView")
 	_ = g.DeleteView("HelpView")
 	_, _ = g.SetCurrentView("ApplicationView")

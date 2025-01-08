@@ -86,22 +86,23 @@ func startMT(cliConnection plugin.CliConnection) {
 		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
 
-	filterCache := make(map[string]bool)
-	tag2filter := "origin"
+	//filterCache := make(map[string]bool)
+	//tag2filter := "origin"
 
 	go func() {
 		for {
 			for _, envelope := range envelopeStream() {
-				conf.TotalEnvelopes++
+				common.TotalEnvelopes++
 				orgName := envelope.Tags[apps.TagOrgName]
 				spaceName := envelope.Tags[apps.TagSpaceName]
 				appName := envelope.Tags[apps.TagAppName]
 				index := envelope.Tags[apps.TagAppInstanceId]
 				appguid := envelope.Tags[apps.TagAppId]
-				key := appguid + "/" + index
+				var key string
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
+					key = appguid + "/" + index
 					if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep || envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
-						conf.MapLock.Lock()
+						common.MapLock.Lock()
 						// if key not in metricMap, add it
 						metricValues, ok := apps.InstanceMetricMap[key]
 						if !ok {
@@ -110,11 +111,11 @@ func startMT(cliConnection plugin.CliConnection) {
 						}
 						if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep {
 							metricValues.LogRep++
-							conf.TotalEnvelopesRep++
+							common.TotalEnvelopesRep++
 						}
 						if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
 							metricValues.LogRtr++
-							conf.TotalEnvelopesRtr++
+							common.TotalEnvelopesRtr++
 						}
 						metricValues.AppName = appName
 						metricValues.AppIndex = index
@@ -124,16 +125,17 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.LastSeen = time.Now()
 						metricValues.IP = envelope.GetTags()["ip"]
 						apps.InstanceMetricMap[key] = metricValues
-						conf.MapLock.Unlock()
+						common.MapLock.Unlock()
 					}
 				}
 				if gauge := envelope.GetGauge(); gauge != nil {
 					//util.WriteToFile(fmt.Sprintf("gauge: %v / Tags: %v", gauge, envelope.GetTags()))
+					metrics := gauge.GetMetrics()
+					common.MapLock.Lock()
 					if orgName != "" { // these are app-related metrics
+						key = appguid + "/" + index
 						apps.TotalApps[appguid] = true // just count the apps (not instances)
-						metrics := gauge.GetMetrics()
 						indexInt, _ := strconv.Atoi(index)
-						conf.MapLock.Lock()
 						if indexInt+1 > apps.AppInstanceCounters[appguid].Count {
 							instanceCounter := apps.AppInstanceCounter{Count: indexInt + 1, LastUpdated: time.Now()}
 							apps.AppInstanceCounters[appguid] = instanceCounter
@@ -159,20 +161,40 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.IP = envelope.GetTags()["ip"]
 						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[apps.MetricCpu]
 						apps.InstanceMetricMap[key] = metricValues
-						conf.MapLock.Unlock()
 					} else { // these are machine-related metrics (diego-cell / router / cc )
-
-					}
-					if envelope.Tags[apps.TagOrgName] == "" {
-						tag2filter = envelope.Tags["job"] + "," + envelope.Tags["origin"] // these are cell-related metrics
-						for metricKey, _ := range gauge.GetMetrics() {
-							tag2filter = tag2filter + "," + metricKey
-							if !filterCache[tag2filter] {
-								//util.WriteToFile(fmt.Sprintf("%s", tag2filter))
-								filterCache[tag2filter] = true
+						key = envelope.Tags[vms.TagIP]
+						if envelope.Tags[vms.TagIP] != "" && envelope.Tags[vms.TagJob] == "diego-cell" {
+							// if key not in metricMap, add it
+							metricValues, ok := vms.CellMetricMap[key]
+							if !ok {
+								metricValues.Tags = make(map[string]float64)
+								vms.CellMetricMap[key] = metricValues
+								util.WriteToFile(fmt.Sprintf("added cell: %s", key))
 							}
+							for _, metricName := range vms.MetricNames {
+								value := metrics[metricName].GetValue()
+								if value != 0 {
+									metricValues.Tags[metricName] = value
+								}
+							}
+							metricValues.IP = envelope.Tags[vms.TagIP]
+							metricValues.Index = envelope.Tags[vms.TagIx]
+							metricValues.ContainerUsageMemory = metricValues.Tags[vms.MetricContainerUsageMemory]
+							metricValues.LastSeen = time.Now()
+							vms.CellMetricMap[key] = metricValues
 						}
 					}
+					common.MapLock.Unlock()
+					//if envelope.Tags[apps.TagOrgName] == "" {
+					//	tag2filter = envelope.Tags["job"] + "," + envelope.Tags["origin"] // these are cell-related metrics
+					//	for metricKey, _ := range gauge.GetMetrics() {
+					//		tag2filter = tag2filter + "," + metricKey
+					//		if !filterCache[tag2filter] {
+					//			//util.WriteToFile(fmt.Sprintf("%s", tag2filter))
+					//			filterCache[tag2filter] = true
+					//		}
+					//	}
+					//}
 				}
 			}
 		}
@@ -181,7 +203,7 @@ func startMT(cliConnection plugin.CliConnection) {
 	// start up the routine that cleans up the metrics map (apps that haven't been seen for a while are removed)
 	go func() {
 		for range time.NewTicker(1 * time.Minute).C {
-			conf.MapLock.Lock()
+			common.MapLock.Lock()
 			var deleted = 0
 			for key, metricValues := range apps.InstanceMetricMap {
 				if time.Since(metricValues.LastSeen) > 1*time.Minute {
@@ -191,22 +213,21 @@ func startMT(cliConnection plugin.CliConnection) {
 					deleted++
 				}
 			}
-			conf.MapLock.Unlock()
+			common.MapLock.Unlock()
 		}
 	}()
 
 	// start up the routine that checks how old the value is in AppInstanceCount and lowers it if necessary
 	go func() {
 		for range time.NewTicker(10 * time.Second).C {
-			conf.MapLock.Lock()
+			common.MapLock.Lock()
 			for key, appInstanceCounter := range apps.AppInstanceCounters {
 				if time.Since(appInstanceCounter.LastUpdated) > 30*time.Second && appInstanceCounter.Count > 1 {
-					//util.WriteToFile(fmt.Sprintf("Lowered instance count for %s to %d", conf.InstanceMetricMap[key+"/0"].AppName, appInstanceCounter.Count-1))
 					updatedInstanceCounter := apps.AppInstanceCounter{Count: appInstanceCounter.Count - 1, LastUpdated: time.Now()}
 					apps.AppInstanceCounters[key] = updatedInstanceCounter
 				}
 			}
-			conf.MapLock.Unlock()
+			common.MapLock.Unlock()
 		}
 	}()
 
@@ -222,10 +243,6 @@ func startCui() {
 		os.Exit(1)
 	}
 	defer gui.Close()
-
-	apps.SetKeyBindings(gui)
-	vms.SetKeyBindings(gui)
-	common.SetKeyBindings(gui)
 
 	//  main UI refresh loop
 	go func() {

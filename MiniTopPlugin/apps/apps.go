@@ -34,14 +34,6 @@ const (
 	filterFieldAppName int = iota
 	filterFieldOrg
 	filterFieldSpace
-)
-
-var (
-	mainView             *gocui.View
-	summaryView          *gocui.View
-	AppMetricMap         map[string]AppOrInstanceMetric         // map key is app-guid
-	InstanceMetricMap    = make(map[string]AppOrInstanceMetric) // map key is app-guid/index
-	AppInstanceCounters  = make(map[string]AppInstanceCounter)  // here we keep the highest instance index for each app
 	MetricCpu            = "cpu"
 	metricAge            = "container_age"
 	metricCpuEntitlement = "cpu_entitlement"
@@ -50,14 +42,22 @@ var (
 	metricMemoryQuota    = "memory_quota"
 	metricLogRate        = "log_rate"
 	metricLogRateLimit   = "log_rate_limit"
+	TagAppId             = "app_id"
 	TagOrgName           = "organization_name"
 	TagSpaceName         = "space_name"
 	TagAppName           = "app_name"
-	TagAppId             = "app_id"
 	TagAppInstanceId     = "instance_id" // use this for app index
 	TagOrigin            = "origin"
 	TagOriginValueRep    = "rep"
 	TagOriginValueRtr    = "gorouter"
+)
+
+var (
+	mainView             *gocui.View
+	summaryView          *gocui.View
+	AppMetricMap         map[string]AppOrInstanceMetric         // map key is app-guid
+	InstanceMetricMap    = make(map[string]AppOrInstanceMetric) // map key is app-guid/index
+	AppInstanceCounters  = make(map[string]AppInstanceCounter)  // here we keep the highest instance index for each app
 	TotalApps            = make(map[string]bool)
 	totalMemoryUsed      float64
 	totalMemoryAllocated float64
@@ -87,18 +87,18 @@ func NewAppView() *AppView {
 }
 
 func (a *AppView) Layout(g *gocui.Gui) error {
-	return Layout(g)
+	return layout(g)
 }
 
 func ShowView(gui *gocui.Gui) {
 	colorSortedColumn()
-	totalEnvelopesPrev := conf.TotalEnvelopes
-	totalEnvelopesRepPrev := conf.TotalEnvelopesRep
-	totalEnvelopesRtrPrev := conf.TotalEnvelopesRtr
+	totalEnvelopesPrev := common.TotalEnvelopes
+	totalEnvelopesRepPrev := common.TotalEnvelopesRep
+	totalEnvelopesRtrPrev := common.TotalEnvelopesRtr
 
 	// update memory summaries
 	var totalMemUsed, totalMemAllocated, totalLogRtUsed float64
-	conf.MapLock.Lock()
+	common.MapLock.Lock()
 	AppMetricMap = make(map[string]AppOrInstanceMetric)
 	for _, metric := range InstanceMetricMap {
 		totalMemUsed += metric.Tags[metricMemory]
@@ -106,7 +106,7 @@ func ShowView(gui *gocui.Gui) {
 		totalLogRtUsed += metric.Tags[metricLogRate]
 		updateAppMetrics(&metric)
 	}
-	conf.MapLock.Unlock()
+	common.MapLock.Unlock()
 	totalMemoryUsed = totalMemUsed
 	totalMemoryAllocated = totalMemAllocated
 	totalLogRateUsed = totalLogRtUsed
@@ -116,25 +116,24 @@ func ShowView(gui *gocui.Gui) {
 		return nil
 	})
 
-	conf.TotalEnvelopesPerSec = (conf.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
-	conf.TotalEnvelopesRepPerSec = (conf.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
-	conf.TotalEnvelopesRtrPerSec = (conf.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
+	common.TotalEnvelopesPerSec = (common.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
+	common.TotalEnvelopesRepPerSec = (common.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
+	common.TotalEnvelopesRtrPerSec = (common.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
 }
 
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	conf.FilterStrings[filterFieldAppName] = ""
-	conf.FilterStrings[filterFieldOrg] = ""
-	conf.FilterStrings[filterFieldSpace] = ""
+	common.FilterStrings[filterFieldAppName] = ""
+	common.FilterStrings[filterFieldOrg] = ""
+	common.FilterStrings[filterFieldSpace] = ""
 	return nil
 }
 
-func Layout(g *gocui.Gui) (err error) {
+func layout(g *gocui.Gui) (err error) {
 	if common.ActiveView != common.AppView && common.ActiveView != common.AppInstanceView {
 		return nil
 	}
-	util.WriteToFile("APP/Instances layout")
 	maxX, maxY := g.Size()
 	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4, byte(0)); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
@@ -150,7 +149,7 @@ func Layout(g *gocui.Gui) (err error) {
 		v, _ := g.SetCurrentView("ApplicationView")
 		v.Title = "Application Instances"
 	}
-	if conf.ShowFilter {
+	if common.ShowFilter {
 		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
@@ -160,19 +159,19 @@ func Layout(g *gocui.Gui) (err error) {
 			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
 			if activeAppsSortField == sortByAppName || activeInstancesSortField == sortByAppName {
 				_, _ = fmt.Fprintln(v, " AppName")
-				_, _ = fmt.Fprintln(v, conf.FilterStrings[filterFieldAppName])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldAppName])
 			}
 			if activeAppsSortField == sortBySpace || activeInstancesSortField == sortBySpace {
 				_, _ = fmt.Fprintln(v, " Space")
-				_, _ = fmt.Fprintln(v, conf.FilterStrings[filterFieldSpace])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldSpace])
 			}
 			if activeAppsSortField == sortByOrg || activeInstancesSortField == sortByOrg {
 				_, _ = fmt.Fprintln(v, " Org")
-				_, _ = fmt.Fprintln(v, conf.FilterStrings[filterFieldOrg])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldOrg])
 			}
 		}
 	}
-	if conf.ShowHelp {
+	if common.ShowHelp {
 		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
@@ -186,20 +185,19 @@ func Layout(g *gocui.Gui) (err error) {
 }
 
 func refreshViewContent(gui *gocui.Gui) {
-	util.WriteToFile("App/Instances refreshViewContent")
 	_, maxY := gui.Size()
 
 	summaryView.Clear()
 	_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n"+
 		"Total events: %s (%s/s), RTR events: %s (%s/s), REP events: %s (%s/s), App LogRate: %sBps\n"+
 		"Total Apps: %d, Instances: %d, Allocated Mem: %s, Used Mem: %s\n",
-		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(conf.StartTime)).Seconds()*1e9),
-		util.GetFormattedUnit(conf.TotalEnvelopes),
-		util.GetFormattedUnit(conf.TotalEnvelopesPerSec),
-		util.GetFormattedUnit(conf.TotalEnvelopesRtr),
-		util.GetFormattedUnit(conf.TotalEnvelopesRtrPerSec),
-		util.GetFormattedUnit(conf.TotalEnvelopesRep),
-		util.GetFormattedUnit(conf.TotalEnvelopesRepPerSec),
+		conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9),
+		util.GetFormattedUnit(common.TotalEnvelopes),
+		util.GetFormattedUnit(common.TotalEnvelopesPerSec),
+		util.GetFormattedUnit(common.TotalEnvelopesRtr),
+		util.GetFormattedUnit(common.TotalEnvelopesRtrPerSec),
+		util.GetFormattedUnit(common.TotalEnvelopesRep),
+		util.GetFormattedUnit(common.TotalEnvelopesRepPerSec),
 		util.GetFormattedUnit(totalLogRateUsed/8),
 		len(TotalApps),
 		len(InstanceMetricMap),
@@ -207,11 +205,12 @@ func refreshViewContent(gui *gocui.Gui) {
 		util.GetFormattedUnit(totalMemoryUsed))
 
 	mainView.Clear()
-	conf.MapLock.Lock()
+	common.MapLock.Lock()
 	lineCounter := 0
 	if common.ActiveView == common.AppInstanceView {
 		mainView.Title = "Application Instances"
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", conf.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", conf.ColorReset))
+		util.WriteToFile(fmt.Sprintf("InstanceMetricMap size: %d", len(InstanceMetricMap)))
 		for _, pairlist := range sortedBy(InstanceMetricMap, common.ActiveSortDirection, activeInstancesSortField) {
 			if passFilter(pairlist) {
 				_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
@@ -268,48 +267,48 @@ func refreshViewContent(gui *gocui.Gui) {
 			}
 		}
 	}
-	conf.MapLock.Unlock()
+	common.MapLock.Unlock()
 }
 
 func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		if activeInstancesSortField == sortByAppName || activeAppsSortField == sortByAppName {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(conf.FilterStrings[filterFieldAppName]) > 0 {
-					conf.FilterStrings[filterFieldAppName] = conf.FilterStrings[filterFieldAppName][:len(conf.FilterStrings[filterFieldAppName])-1]
-					_ = v.SetCursor(len(conf.FilterStrings[filterFieldAppName])+1, 1)
+				if len(common.FilterStrings[filterFieldAppName]) > 0 {
+					common.FilterStrings[filterFieldAppName] = common.FilterStrings[filterFieldAppName][:len(common.FilterStrings[filterFieldAppName])-1]
+					_ = v.SetCursor(len(common.FilterStrings[filterFieldAppName])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				conf.FilterStrings[filterFieldAppName] = conf.FilterStrings[filterFieldAppName] + string(ch)
+				common.FilterStrings[filterFieldAppName] = common.FilterStrings[filterFieldAppName] + string(ch)
 			}
 		}
 		if activeInstancesSortField == sortBySpace || activeAppsSortField == sortBySpace {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(conf.FilterStrings[filterFieldSpace]) > 0 {
-					conf.FilterStrings[filterFieldSpace] = conf.FilterStrings[filterFieldSpace][:len(conf.FilterStrings[filterFieldSpace])-1]
-					_ = v.SetCursor(len(conf.FilterStrings[filterFieldSpace])+1, 1)
+				if len(common.FilterStrings[filterFieldSpace]) > 0 {
+					common.FilterStrings[filterFieldSpace] = common.FilterStrings[filterFieldSpace][:len(common.FilterStrings[filterFieldSpace])-1]
+					_ = v.SetCursor(len(common.FilterStrings[filterFieldSpace])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				conf.FilterStrings[filterFieldSpace] = conf.FilterStrings[filterFieldSpace] + string(ch)
+				common.FilterStrings[filterFieldSpace] = common.FilterStrings[filterFieldSpace] + string(ch)
 			}
 		}
 		if activeInstancesSortField == sortByOrg || activeAppsSortField == sortByOrg {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(conf.FilterStrings[filterFieldOrg]) > 0 {
-					conf.FilterStrings[filterFieldOrg] = conf.FilterStrings[filterFieldOrg][:len(conf.FilterStrings[filterFieldOrg])-1]
-					_ = v.SetCursor(len(conf.FilterStrings[filterFieldOrg])+1, 1)
+				if len(common.FilterStrings[filterFieldOrg]) > 0 {
+					common.FilterStrings[filterFieldOrg] = common.FilterStrings[filterFieldOrg][:len(common.FilterStrings[filterFieldOrg])-1]
+					_ = v.SetCursor(len(common.FilterStrings[filterFieldOrg])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				conf.FilterStrings[filterFieldOrg] = conf.FilterStrings[filterFieldOrg] + string(ch)
+				common.FilterStrings[filterFieldOrg] = common.FilterStrings[filterFieldOrg] + string(ch)
 			}
 		}
 		return nil

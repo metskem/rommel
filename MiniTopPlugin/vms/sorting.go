@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ixColor                   = conf.ColorWhite
-	activeSortField SortField = sortByIP
+	ixColor                             = conf.ColorWhite
+	containerUsageMemoryColor           = conf.ColorWhite
+	activeSortField           SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -34,6 +35,8 @@ func colorSortedColumn() {
 		ixColor = conf.ColorBlue
 	case sortByIP:
 		common.IPColor = conf.ColorBlue
+	case sortByContainerUsageMemory:
+		containerUsageMemoryColor = conf.ColorBlue
 	}
 }
 
@@ -45,6 +48,7 @@ const (
 	sortByAge
 	sortByIx
 	sortByIP
+	sortByContainerUsageMemory
 )
 
 func sortedBy(metricMap map[string]CellMetric, reverse bool, sortField SortField) PairList {
@@ -78,6 +82,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metricAge] < p[j].Value.Tags[metricAge]
 	case sortByIP:
 		return p[i].Value.IP < p[j].Value.IP
+	case sortByContainerUsageMemory:
+		return p[i].Value.ContainerUsageMemory < p[j].Value.ContainerUsageMemory
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }
@@ -85,8 +91,8 @@ func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func passFilter(pairList Pair) bool {
 	filterPassed := true
-	filterRegex := regexp.MustCompile(conf.FilterStrings[filterFieldIP])
-	if !(conf.FilterStrings[filterFieldIP] == "") && !filterRegex.MatchString(pairList.Value.IP) {
+	filterRegex := regexp.MustCompile(common.FilterStrings[filterFieldIP])
+	if !(common.FilterStrings[filterFieldIP] == "") && !filterRegex.MatchString(pairList.Value.IP) {
 		filterPassed = false
 	}
 	return filterPassed

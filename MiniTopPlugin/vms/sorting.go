@@ -10,11 +10,14 @@ import (
 const (
 	sortByLastSeen = iota
 	sortByAge
-	//sortByIx
 	sortByIP
+	sortByJob
+	sortByUpTime
 	sortByContainerUsageMemory
+	sortByCapacityTotalDisk
 	sortByContainerUsageDisk
 	sortByContainerCount
+	sortByCapacityTotalMemory
 	sortByCapacityAllocatedMemory
 	sortByIPTablesRuleCount
 	sortByNetInterfaceCount
@@ -28,21 +31,24 @@ const (
 )
 
 var (
-	//ixColor                             = common.ColorWhite
+	upTimeColor                            = common.ColorWhite
+	JobColor                               = common.ColorWhite
 	containerUsageMemoryColor              = common.ColorWhite
+	CapacityTotalDiskColor                 = common.ColorWhite
 	containerUsageDiskColor                = common.ColorWhite
 	containerCountColor                    = common.ColorWhite
+	capacityTotalMemoryColor               = common.ColorWhite
 	capacityAllocatedMemoryColor           = common.ColorWhite
-	IPTablesRuleCount                      = common.ColorWhite
-	NetInterfaceCount                      = common.ColorWhite
-	OverlayTxBytes                         = common.ColorWhite
-	OverlayRxBytes                         = common.ColorWhite
-	OverlayRxDropped                       = common.ColorWhite
+	IPTablesRuleCountColor                 = common.ColorWhite
+	NetInterfaceCountColor                 = common.ColorWhite
+	OverlayTxBytesColor                    = common.ColorWhite
+	OverlayRxBytesColor                    = common.ColorWhite
+	OverlayRxDroppedColor                  = common.ColorWhite
 	OverlayTxDropped                       = common.ColorWhite
-	HTTPRouteCount                         = common.ColorWhite
-	DopplerConnections                     = common.ColorWhite
-	ActiveDrains                           = common.ColorWhite
-	activeSortField              SortField = sortByIP
+	HTTPRouteCountColor                    = common.ColorWhite
+	DopplerConnectionsColor                = common.ColorWhite
+	ActiveDrainsColor                      = common.ColorWhite
+	activeSortFieldColor         SortField = sortByJob
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -57,41 +63,47 @@ func colorSortedColumn() {
 	common.AgeColor = common.ColorWhite
 	//ixColor = common.ColorWhite
 	common.IPColor = common.ColorWhite
-	switch activeSortField {
+	switch activeSortFieldColor {
 	case sortByLastSeen:
 		common.LastSeenColor = common.ColorBlue
 	case sortByAge:
 		common.AgeColor = common.ColorBlue
-	//case sortByIx:
-	//	ixColor = common.ColorBlue
+	case sortByJob:
+		JobColor = common.ColorBlue
 	case sortByIP:
 		common.IPColor = common.ColorBlue
+	case sortByUpTime:
+		upTimeColor = common.ColorBlue
 	case sortByContainerUsageMemory:
 		containerUsageMemoryColor = common.ColorBlue
+	case sortByCapacityTotalDisk:
+		CapacityTotalDiskColor = common.ColorBlue
 	case sortByContainerUsageDisk:
 		containerUsageDiskColor = common.ColorBlue
 	case sortByContainerCount:
 		containerCountColor = common.ColorBlue
+	case sortByCapacityTotalMemory:
+		capacityTotalMemoryColor = common.ColorBlue
 	case sortByCapacityAllocatedMemory:
 		capacityAllocatedMemoryColor = common.ColorBlue
 	case sortByIPTablesRuleCount:
-		IPTablesRuleCount = common.ColorBlue
+		IPTablesRuleCountColor = common.ColorBlue
 	case sortByNetInterfaceCount:
-		NetInterfaceCount = common.ColorBlue
+		NetInterfaceCountColor = common.ColorBlue
 	case sortByOverlayTxBytes:
-		OverlayTxBytes = common.ColorBlue
+		OverlayTxBytesColor = common.ColorBlue
 	case sortByOverlayRxBytes:
-		OverlayRxBytes = common.ColorBlue
+		OverlayRxBytesColor = common.ColorBlue
 	case sortByOverlayRxDropped:
-		OverlayRxDropped = common.ColorBlue
+		OverlayRxDroppedColor = common.ColorBlue
 	case sortByOverlayTxDropped:
 		OverlayTxDropped = common.ColorBlue
 	case sortByHTTPRouteCount:
-		OverlayRxBytes = common.ColorBlue
+		HTTPRouteCountColor = common.ColorBlue
 	case sortByDopplerConnections:
-		DopplerConnections = common.ColorBlue
+		DopplerConnectionsColor = common.ColorBlue
 	case sortByActiveDrains:
-		ActiveDrains = common.ColorBlue
+		ActiveDrainsColor = common.ColorBlue
 	}
 }
 
@@ -127,14 +139,22 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.LastSeen.Unix() < p[j].Value.LastSeen.Unix()
 	case sortByAge:
 		return p[i].Value.Tags[metricAge] < p[j].Value.Tags[metricAge]
+	case sortByJob:
+		return p[i].Value.Job < p[j].Value.Job
 	case sortByIP:
 		return p[i].Value.IP < p[j].Value.IP
+	case sortByUpTime:
+		return p[i].Value.UpTime < p[j].Value.UpTime
 	case sortByContainerUsageMemory:
 		return p[i].Value.ContainerUsageMemory < p[j].Value.ContainerUsageMemory
+	case sortByCapacityTotalDisk:
+		return p[i].Value.CapacityTotalDisk < p[j].Value.CapacityTotalDisk
 	case sortByContainerUsageDisk:
 		return p[i].Value.ContainerUsageDisk < p[j].Value.ContainerUsageDisk
 	case sortByContainerCount:
 		return p[i].Value.ContainerCount < p[j].Value.ContainerCount
+	case sortByCapacityTotalMemory:
+		return p[i].Value.CapacityTotalMemory < p[j].Value.CapacityTotalMemory
 	case sortByCapacityAllocatedMemory:
 		return p[i].Value.CapacityAllocatedMemory < p[j].Value.CapacityAllocatedMemory
 	case sortByIPTablesRuleCount:

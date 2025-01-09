@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 var logFile *os.File
@@ -56,8 +57,8 @@ func WriteToFile(text string) {
 		}
 	}
 	//defer func() { _ = logFile.Close() }()
-	_, _ = logFile.WriteString(text + "\n")
-	//_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
+	//_, _ = logFile.WriteString(text + "\n")
+	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }
 
 func TruncateString(s string, length int) string {

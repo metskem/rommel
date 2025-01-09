@@ -2,8 +2,8 @@ package main
 
 import (
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/go-loggregator/v9"
-	"code.cloudfoundry.org/go-loggregator/v9/rpc/loggregator_v2"
+	"code.cloudfoundry.org/go-loggregator/v10"
+	"code.cloudfoundry.org/go-loggregator/v10/rpc/loggregator_v2"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -37,6 +37,7 @@ var (
 	accessToken      string
 	useRepRtrLogging bool
 	gui              *gocui.Gui
+	streamErrored    = true
 )
 
 func startMT(cliConnection plugin.CliConnection) {
@@ -53,6 +54,7 @@ func startMT(cliConnection plugin.CliConnection) {
 	go func() {
 		for err := range errorChan {
 			util.WriteToFile(fmt.Sprintf("from errorChannel: %s\n", err.Error()))
+			streamErrored = true
 		}
 	}()
 
@@ -86,11 +88,17 @@ func startMT(cliConnection plugin.CliConnection) {
 		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
 
-	//filterCache := make(map[string]bool)
-	//tag2filter := "origin"
-
 	go func() {
 		for {
+			if streamErrored == true { // if the stream errored (occurs quite often), we need to re-establish it
+				envelopeStream = nil
+				if useRepRtrLogging {
+					envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+				} else {
+					envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
+				}
+				streamErrored = false
+			}
 			for _, envelope := range envelopeStream() {
 				common.TotalEnvelopes++
 				orgName := envelope.Tags[apps.TagOrgName]
@@ -163,7 +171,7 @@ func startMT(cliConnection plugin.CliConnection) {
 						apps.InstanceMetricMap[key] = metricValues
 					} else { // these are machine-related metrics (diego-cell / router / cc )
 						key = envelope.Tags[vms.TagIP]
-						if envelope.Tags[vms.TagIP] != "" && envelope.Tags[vms.TagJob] == "diego-cell" {
+						if envelope.Tags[vms.TagIP] != "" {
 							// if key not in metricMap, add it
 							metricValues, ok := vms.CellMetricMap[key]
 							if !ok {
@@ -177,6 +185,7 @@ func startMT(cliConnection plugin.CliConnection) {
 								}
 							}
 							metricValues.IP = envelope.Tags[vms.TagIP]
+							metricValues.Job = envelope.Tags[vms.TagJob]
 							metricValues.Index = envelope.Tags[vms.TagIx]
 							metricValues.LastSeen = time.Now()
 							vms.CellMetricMap[key] = metricValues
@@ -235,7 +244,7 @@ func startCui() {
 	//  main UI refresh loop
 	go func() {
 		gui.SetManager(vms.NewVMView()) // we startup with the VMView
-		for {
+		for streamErrored == false {
 			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
 				apps.SetKeyBindings(gui)
 				common.SetKeyBindings(gui)

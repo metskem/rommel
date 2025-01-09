@@ -22,7 +22,11 @@ type CellMetric struct {
 	NetInterfaceCount       float64
 	OverlayTxBytes          float64
 	OverlayRxBytes          float64
+	OverlayTxDropped        float64
+	OverlayRxDropped        float64
 	HTTPRouteCount          float64
+	DopplerConnections      float64
+	ActiveDrains            float64
 	Tags                    map[string]float64
 }
 
@@ -47,8 +51,12 @@ var (
 	MetricNetInterfaceCount       = "NetInterfaceCount"
 	MetricOverlayTxBytes          = "OverlayTxBytes"
 	MetricOverlayRxBytes          = "OverlayRxBytes"
+	MetricOverlayRxDropped        = "OverlayRxDropped"
+	MetricOverlayTxDropped        = "OverlayTxDropped"
 	MetricHTTPRouteCount          = "HTTPRouteCount"
-	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory, MetricIPTablesRuleCount, MetricNetInterfaceCount, MetricOverlayTxBytes, MetricOverlayRxBytes, MetricHTTPRouteCount}
+	MetricDopplerConnections      = "doppler_connections"
+	MetricActiveDrains            = "active_drains"
+	MetricNames                   = []string{metricIP, metricAge, MetricContainerUsageMemory, MetricContainerUsageDisk, MetricContainerCount, MetricCapacityAllocatedMemory, MetricIPTablesRuleCount, MetricNetInterfaceCount, MetricOverlayTxBytes, MetricOverlayRxBytes, MetricHTTPRouteCount, MetricOverlayRxDropped, MetricOverlayTxDropped, MetricDopplerConnections, MetricActiveDrains}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -148,13 +156,14 @@ func refreshViewContent(gui *gocui.Gui) {
 	if mainView != nil {
 		mainView.Clear()
 		common.MapLock.Lock()
+		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %9s %8s %13s %12s %14s %14s %12s %s\n", common.ColorYellow,
-			"LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", "IPTablesRules", "NetIntrfcCnt", "OverlayTxBytes", "OverlayRxBytes", "HTTPRouteCnt", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-14s %8s %9s %9s %8s %13s %12s %12s %12s %12s %11s %11s %12s %12s %s\n", common.ColorYellow,
+			"LASTSEEN", "IP", "AllocMem", "CntrMemUse", "CntrDiskUse", "CntrCnt", "IPTablesRules", "NetIntrfcCnt", "OvrlyTxBytes", "OvrlyRxBytes", "HTTPRouteCnt", "OvrlyRxDrop", "OvrlyTxDrop", "DopplerConns", "ActiveDrains", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%8s%s %s%13s%s %s%12s%s %s%14s%s %s%14s%s %s%12s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-14s%s %s%8s%s %s%10s%s %s%11s%s %s%8s%s %s%13s%s %s%12s%s %s%12s%s %s%12s%s %s%12s%s %s%11s%s %s%11s%s %s%12s%s %s%12s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
 					capacityAllocatedMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[MetricCapacityAllocatedMemory]), common.ColorReset,
@@ -166,6 +175,10 @@ func refreshViewContent(gui *gocui.Gui) {
 					OverlayTxBytes, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayTxBytes]), common.ColorReset,
 					OverlayRxBytes, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayRxBytes]), common.ColorReset,
 					HTTPRouteCount, util.GetFormattedUnit(pairlist.Value.Tags[MetricHTTPRouteCount]), common.ColorReset,
+					OverlayRxDropped, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayRxDropped]), common.ColorReset,
+					OverlayTxDropped, util.GetFormattedUnit(pairlist.Value.Tags[MetricOverlayTxDropped]), common.ColorReset,
+					DopplerConnections, util.GetFormattedUnit(pairlist.Value.Tags[MetricDopplerConnections]), common.ColorReset,
+					ActiveDrains, util.GetFormattedUnit(pairlist.Value.Tags[MetricActiveDrains]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {
@@ -174,6 +187,5 @@ func refreshViewContent(gui *gocui.Gui) {
 				}
 			}
 		}
-		common.MapLock.Unlock()
 	}
 }

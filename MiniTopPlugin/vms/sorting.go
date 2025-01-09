@@ -20,7 +20,11 @@ const (
 	sortByNetInterfaceCount
 	sortByOverlayTxBytes
 	sortByOverlayRxBytes
+	sortByOverlayRxDropped
+	sortByOverlayTxDropped
 	sortByHTTPRouteCount
+	sortByDopplerConnections
+	sortByActiveDrains
 )
 
 var (
@@ -33,7 +37,11 @@ var (
 	NetInterfaceCount                      = common.ColorWhite
 	OverlayTxBytes                         = common.ColorWhite
 	OverlayRxBytes                         = common.ColorWhite
+	OverlayRxDropped                       = common.ColorWhite
+	OverlayTxDropped                       = common.ColorWhite
 	HTTPRouteCount                         = common.ColorWhite
+	DopplerConnections                     = common.ColorWhite
+	ActiveDrains                           = common.ColorWhite
 	activeSortField              SortField = sortByIP
 )
 
@@ -74,8 +82,16 @@ func colorSortedColumn() {
 		OverlayTxBytes = common.ColorBlue
 	case sortByOverlayRxBytes:
 		OverlayRxBytes = common.ColorBlue
+	case sortByOverlayRxDropped:
+		OverlayRxDropped = common.ColorBlue
+	case sortByOverlayTxDropped:
+		OverlayTxDropped = common.ColorBlue
 	case sortByHTTPRouteCount:
 		OverlayRxBytes = common.ColorBlue
+	case sortByDopplerConnections:
+		DopplerConnections = common.ColorBlue
+	case sortByActiveDrains:
+		ActiveDrains = common.ColorBlue
 	}
 }
 
@@ -129,8 +145,16 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.OverlayTxBytes < p[j].Value.OverlayTxBytes
 	case sortByOverlayRxBytes:
 		return p[i].Value.OverlayRxBytes < p[j].Value.OverlayRxBytes
+	case sortByOverlayRxDropped:
+		return p[i].Value.OverlayRxDropped < p[j].Value.OverlayRxDropped
+	case sortByOverlayTxDropped:
+		return p[i].Value.OverlayTxDropped < p[j].Value.OverlayTxDropped
 	case sortByHTTPRouteCount:
 		return p[i].Value.HTTPRouteCount < p[j].Value.HTTPRouteCount
+	case sortByDopplerConnections:
+		return p[i].Value.DopplerConnections < p[j].Value.DopplerConnections
+	case sortByActiveDrains:
+		return p[i].Value.ActiveDrains < p[j].Value.ActiveDrains
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

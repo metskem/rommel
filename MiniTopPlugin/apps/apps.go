@@ -209,11 +209,11 @@ func refreshViewContent(gui *gocui.Gui) {
 	if mainView != nil {
 		mainView.Clear()
 		common.MapLock.Lock()
+		defer common.MapLock.Unlock()
 		lineCounter := 0
 		if common.ActiveView == common.AppInstanceView {
 			mainView.Title = "Application Instances"
 			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", common.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", common.ColorReset))
-			util.WriteToFile(fmt.Sprintf("InstanceMetricMap size: %d", len(InstanceMetricMap)))
 			for _, pairlist := range sortedBy(InstanceMetricMap, common.ActiveSortDirection, activeInstancesSortField) {
 				if passFilter(pairlist) {
 					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
@@ -272,7 +272,6 @@ func refreshViewContent(gui *gocui.Gui) {
 			}
 		}
 	}
-	common.MapLock.Unlock()
 }
 
 func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {

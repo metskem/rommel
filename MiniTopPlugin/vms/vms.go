@@ -15,25 +15,7 @@ type CellMetric struct {
 	Index    string
 	Job      string
 	IP       string
-	//UpTime                  float64
-	//CapacityTotalMemory     float64
-	//CapacityAllocatedMemory float64
-	//ContainerUsageMemory    float64
-	//CapacityTotalDisk       float64
-	//ContainerUsageDisk      float64
-	//ContainerCount          float64
-	//IPTablesRuleCount       float64
-	//NetInterfaceCount       float64
-	//OverlayTxBytes          float64
-	//OverlayRxBytes          float64
-	//OverlayTxDropped        float64
-	//OverlayRxDropped        float64
-	//HTTPRouteCount          float64
-	//DopplerConnections      float64
-	//ActiveDrains            float64
-	//NumCPUS                 float64
-	//Responses               float64
-	Tags map[string]float64
+	Tags     map[string]float64
 }
 
 const (

@@ -28,6 +28,12 @@ const (
 	sortByHTTPRouteCount
 	sortByDopplerConnections
 	sortByActiveDrains
+	sortByNumCPUS
+	sortByResponses
+	sortBy2xx
+	sortBy3xx
+	sortBy4xx
+	sortBy5xx
 )
 
 var (
@@ -48,7 +54,13 @@ var (
 	HTTPRouteCountColor                    = common.ColorWhite
 	DopplerConnectionsColor                = common.ColorWhite
 	ActiveDrainsColor                      = common.ColorWhite
-	activeSortFieldColor         SortField = sortByJob
+	numCPUSColor                           = common.ColorWhite
+	responsesColor                         = common.ColorWhite
+	r2xxColor                              = common.ColorWhite
+	r3xxColor                              = common.ColorWhite
+	r4xxColor                              = common.ColorWhite
+	r5xxColor                              = common.ColorWhite
+	activeSortFieldColor         SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -104,6 +116,18 @@ func colorSortedColumn() {
 		DopplerConnectionsColor = common.ColorBlue
 	case sortByActiveDrains:
 		ActiveDrainsColor = common.ColorBlue
+	case sortByNumCPUS:
+		numCPUSColor = common.ColorBlue
+	case sortByResponses:
+		responsesColor = common.ColorBlue
+	case sortBy2xx:
+		r2xxColor = common.ColorBlue
+	case sortBy3xx:
+		r3xxColor = common.ColorBlue
+	case sortBy4xx:
+		r4xxColor = common.ColorBlue
+	case sortBy5xx:
+		r5xxColor = common.ColorBlue
 	}
 }
 
@@ -144,37 +168,49 @@ func (p PairList) Less(i, j int) bool {
 	case sortByIP:
 		return p[i].Value.IP < p[j].Value.IP
 	case sortByUpTime:
-		return p[i].Value.UpTime < p[j].Value.UpTime
+		return p[i].Value.Tags[metricUpTime] < p[j].Value.Tags[metricUpTime]
 	case sortByContainerUsageMemory:
-		return p[i].Value.ContainerUsageMemory < p[j].Value.ContainerUsageMemory
+		return p[i].Value.Tags[metricContainerUsageMemory] < p[j].Value.Tags[metricContainerUsageMemory]
 	case sortByCapacityTotalDisk:
-		return p[i].Value.CapacityTotalDisk < p[j].Value.CapacityTotalDisk
+		return p[i].Value.Tags[metricCapacityTotalDisk] < p[j].Value.Tags[metricCapacityTotalDisk]
 	case sortByContainerUsageDisk:
-		return p[i].Value.ContainerUsageDisk < p[j].Value.ContainerUsageDisk
+		return p[i].Value.Tags[metricContainerUsageDisk] < p[j].Value.Tags[metricContainerUsageDisk]
 	case sortByContainerCount:
-		return p[i].Value.ContainerCount < p[j].Value.ContainerCount
+		return p[i].Value.Tags[metricContainerCount] < p[j].Value.Tags[metricContainerCount]
 	case sortByCapacityTotalMemory:
-		return p[i].Value.CapacityTotalMemory < p[j].Value.CapacityTotalMemory
+		return p[i].Value.Tags[metricCapacityTotalMemory] < p[j].Value.Tags[metricCapacityTotalMemory]
 	case sortByCapacityAllocatedMemory:
-		return p[i].Value.CapacityAllocatedMemory < p[j].Value.CapacityAllocatedMemory
+		return p[i].Value.Tags[metricCapacityAllocatedMemory] < p[j].Value.Tags[metricCapacityAllocatedMemory]
 	case sortByIPTablesRuleCount:
-		return p[i].Value.IPTablesRuleCount < p[j].Value.IPTablesRuleCount
+		return p[i].Value.Tags[metricIPTablesRuleCount] < p[j].Value.Tags[metricIPTablesRuleCount]
 	case sortByNetInterfaceCount:
-		return p[i].Value.NetInterfaceCount < p[j].Value.NetInterfaceCount
+		return p[i].Value.Tags[metricNetInterfaceCount] < p[j].Value.Tags[metricNetInterfaceCount]
 	case sortByOverlayTxBytes:
-		return p[i].Value.OverlayTxBytes < p[j].Value.OverlayTxBytes
+		return p[i].Value.Tags[metricOverlayTxBytes] < p[j].Value.Tags[metricOverlayTxBytes]
 	case sortByOverlayRxBytes:
-		return p[i].Value.OverlayRxBytes < p[j].Value.OverlayRxBytes
+		return p[i].Value.Tags[metricOverlayRxBytes] < p[j].Value.Tags[metricOverlayRxBytes]
 	case sortByOverlayRxDropped:
-		return p[i].Value.OverlayRxDropped < p[j].Value.OverlayRxDropped
+		return p[i].Value.Tags[metricOverlayRxDropped] < p[j].Value.Tags[metricOverlayRxDropped]
 	case sortByOverlayTxDropped:
-		return p[i].Value.OverlayTxDropped < p[j].Value.OverlayTxDropped
+		return p[i].Value.Tags[metricOverlayTxDropped] < p[j].Value.Tags[metricOverlayTxDropped]
 	case sortByHTTPRouteCount:
-		return p[i].Value.HTTPRouteCount < p[j].Value.HTTPRouteCount
+		return p[i].Value.Tags[metricHTTPRouteCount] < p[j].Value.Tags[metricHTTPRouteCount]
 	case sortByDopplerConnections:
-		return p[i].Value.DopplerConnections < p[j].Value.DopplerConnections
+		return p[i].Value.Tags[metricDopplerConnections] < p[j].Value.Tags[metricDopplerConnections]
 	case sortByActiveDrains:
-		return p[i].Value.ActiveDrains < p[j].Value.ActiveDrains
+		return p[i].Value.Tags[metricActiveDrains] < p[j].Value.Tags[metricActiveDrains]
+	case sortByNumCPUS:
+		return p[i].Value.Tags[metricNumCPUS] < p[j].Value.Tags[metricNumCPUS]
+	case sortByResponses:
+		return p[i].Value.Tags[metricResponses] < p[j].Value.Tags[metricResponses]
+	case sortBy2xx:
+		return p[i].Value.Tags[metric2xx] < p[j].Value.Tags[metric2xx]
+	case sortBy3xx:
+		return p[i].Value.Tags[metric3xx] < p[j].Value.Tags[metric3xx]
+	case sortBy4xx:
+		return p[i].Value.Tags[metric4xx] < p[j].Value.Tags[metric4xx]
+	case sortBy5xx:
+		return p[i].Value.Tags[metric5xx] < p[j].Value.Tags[metric5xx]
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }

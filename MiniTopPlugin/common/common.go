@@ -26,7 +26,7 @@ var (
 	ShowHelp                = false
 	StartTime               = time.Now()
 	FilterStrings           = make(map[int]string)
-	ActiveSortDirection     bool
+	ActiveSortDirection     = true
 	ActiveView              = VMView
 	ViewToggled             bool
 )
@@ -61,7 +61,6 @@ func FlipSortOrder() {
 		} else {
 			ActiveSortDirection = true
 		}
-		util.WriteToFile(fmt.Sprintf("Apps ActiveSortDirection: %t", ActiveSortDirection))
 	}
 	if ActiveView == VMView {
 		if ActiveSortDirection == true {
@@ -69,7 +68,6 @@ func FlipSortOrder() {
 		} else {
 			ActiveSortDirection = true
 		}
-		util.WriteToFile(fmt.Sprintf("VMs ActiveSortDirection: %t", ActiveSortDirection))
 	}
 }
 

@@ -11,27 +11,29 @@ import (
 )
 
 type CellMetric struct {
-	LastSeen                time.Time
-	Index                   string
-	Job                     string
-	IP                      string
-	UpTime                  float64
-	CapacityTotalMemory     float64
-	CapacityAllocatedMemory float64
-	ContainerUsageMemory    float64
-	CapacityTotalDisk       float64
-	ContainerUsageDisk      float64
-	ContainerCount          float64
-	IPTablesRuleCount       float64
-	NetInterfaceCount       float64
-	OverlayTxBytes          float64
-	OverlayRxBytes          float64
-	OverlayTxDropped        float64
-	OverlayRxDropped        float64
-	HTTPRouteCount          float64
-	DopplerConnections      float64
-	ActiveDrains            float64
-	Tags                    map[string]float64
+	LastSeen time.Time
+	Index    string
+	Job      string
+	IP       string
+	//UpTime                  float64
+	//CapacityTotalMemory     float64
+	//CapacityAllocatedMemory float64
+	//ContainerUsageMemory    float64
+	//CapacityTotalDisk       float64
+	//ContainerUsageDisk      float64
+	//ContainerCount          float64
+	//IPTablesRuleCount       float64
+	//NetInterfaceCount       float64
+	//OverlayTxBytes          float64
+	//OverlayRxBytes          float64
+	//OverlayTxDropped        float64
+	//OverlayRxDropped        float64
+	//HTTPRouteCount          float64
+	//DopplerConnections      float64
+	//ActiveDrains            float64
+	//NumCPUS                 float64
+	//Responses               float64
+	Tags map[string]float64
 }
 
 const (
@@ -63,7 +65,13 @@ var (
 	metricHTTPRouteCount          = "HTTPRouteCount"
 	metricDopplerConnections      = "doppler_connections"
 	metricActiveDrains            = "active_drains"
-	MetricNames                   = []string{TagJob, TagIP, metricAge, metricUpTime, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricNetInterfaceCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricDopplerConnections, metricActiveDrains}
+	metricNumCPUS                 = "numCPUS"
+	metricResponses               = "responses"
+	metric2xx                     = "responses.2xx"
+	metric3xx                     = "responses.3xx"
+	metric4xx                     = "responses.4xx"
+	metric5xx                     = "responses.5xx"
+	MetricNames                   = []string{TagJob, TagIP, metricAge, metricUpTime, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricNetInterfaceCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricDopplerConnections, metricActiveDrains, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -166,15 +174,16 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %12s %-14s %6s %8s %10s %6s %7s %7s %7s %5s %5s %5s %5s %6s %8s %8s %5s %5s %s\n", common.ColorYellow,
-			"LASTSEEN", "Job", "IP", "UpTime", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "NICs", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "DOCs", "ACDRs", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %5s %6s %8s %8s %5s %5s %6s %6s %6s %6s %6s %s\n", common.ColorYellow,
+			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "NICs", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "DOCs", "ACDRs", "Resp", "2xx", "3xx", "4xx", "5xx", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortFieldColor) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%12s%s %s%-14s%s %s%6s%s %s%8s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%5s%s %s%5s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%5s%s %s%5s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					JobColor, pairlist.Value.Job, common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
-					upTimeColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[metricUpTime]), common.ColorReset,
+					upTimeColor, util.GetFormattedElapsedTime(1000*1000*1000*pairlist.Value.Tags[metricUpTime]), common.ColorReset,
+					numCPUSColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNumCPUS]), common.ColorReset,
 					capacityTotalMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[metricCapacityTotalMemory]), common.ColorReset,
 					capacityAllocatedMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[metricCapacityAllocatedMemory]), common.ColorReset,
 					containerUsageMemoryColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[metricContainerUsageMemory]), common.ColorReset,
@@ -190,6 +199,11 @@ func refreshViewContent(gui *gocui.Gui) {
 					OverlayTxDropped, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayTxDropped]), common.ColorReset,
 					DopplerConnectionsColor, util.GetFormattedUnit(pairlist.Value.Tags[metricDopplerConnections]), common.ColorReset,
 					ActiveDrainsColor, util.GetFormattedUnit(pairlist.Value.Tags[metricActiveDrains]), common.ColorReset,
+					responsesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricResponses]), common.ColorReset,
+					r2xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric2xx]), common.ColorReset,
+					r3xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric3xx]), common.ColorReset,
+					r4xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric4xx]), common.ColorReset,
+					r5xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric5xx]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

@@ -72,34 +72,40 @@ func startMT(cliConnection plugin.CliConnection) {
 		}
 	}()
 
-	rlpGatewayClient := loggregator.NewRLPGatewayClient(
-		strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
-		loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
-		loggregator.WithRLPGatewayErrChan(errorChan),
-		loggregator.WithRLPGatewayMaxRetries(1000),
-	)
-
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
-	var envelopeStream loggregator.EnvelopeStream
-	util.WriteToFile(fmt.Sprintf("useRtrRepLogging: %t", useRepRtrLogging))
-	if useRepRtrLogging {
-		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
-	} else {
-		envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
-	}
-
 	go func() {
+		rlpCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		var envelopeStream loggregator.EnvelopeStream
+		var streamReadStarted = false
 		for {
 			if streamErrored == true { // if the stream errored (occurs quite often), we need to re-establish it
-				envelopeStream = nil
+				util.WriteToFile("(re)starting rlpGatewayClient...")
+				rlpCtx = context.TODO()
+				rlpGatewayClient := loggregator.NewRLPGatewayClient(
+					strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
+					loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
+					loggregator.WithRLPGatewayErrChan(errorChan),
+					loggregator.WithRLPGatewayMaxRetries(1000),
+				)
+
 				if useRepRtrLogging {
-					envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+					envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
 				} else {
-					envelopeStream = rlpGatewayClient.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
+					envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 				}
 				streamErrored = false
 			}
+			streamReadStarted = false
 			for _, envelope := range envelopeStream() {
+				common.MapLock.Lock()
+				streamReadStarted = true
+				if streamErrored == true {
+					break
+				}
+				if int(common.TotalEnvelopes)%100000 == 0 {
+					util.WriteToFile(fmt.Sprintf("TotalEnvelopes: %.0f", common.TotalEnvelopes))
+				}
 				common.TotalEnvelopes++
 				orgName := envelope.Tags[apps.TagOrgName]
 				spaceName := envelope.Tags[apps.TagSpaceName]
@@ -139,7 +145,6 @@ func startMT(cliConnection plugin.CliConnection) {
 				if gauge := envelope.GetGauge(); gauge != nil {
 					//util.WriteToFile(fmt.Sprintf("gauge: %v / Tags: %v", gauge, envelope.GetTags()))
 					metrics := gauge.GetMetrics()
-					common.MapLock.Lock()
 					if orgName != "" { // these are app-related metrics
 						key = appguid + "/" + index
 						apps.TotalApps[appguid] = true // just count the apps (not instances)
@@ -169,7 +174,8 @@ func startMT(cliConnection plugin.CliConnection) {
 						metricValues.IP = envelope.GetTags()["ip"]
 						metricValues.CpuTot = metricValues.CpuTot + metricValues.Tags[apps.MetricCpu]
 						apps.InstanceMetricMap[key] = metricValues
-					} else { // these are machine-related metrics (diego-cell / router / cc )
+					} else {
+						// these are machine-related metrics (diego-cell / router / cc )
 						key = envelope.Tags[vms.TagIP]
 						if envelope.Tags[vms.TagIP] != "" {
 							// if key not in metricMap, add it
@@ -191,8 +197,34 @@ func startMT(cliConnection plugin.CliConnection) {
 							vms.CellMetricMap[key] = metricValues
 						}
 					}
-					common.MapLock.Unlock()
 				}
+				// type counter metrics
+				if counter := envelope.GetCounter(); counter != nil {
+					key = envelope.Tags[vms.TagIP]
+					if envelope.Tags[vms.TagIP] != "" {
+						// if key not in metricMap, add it
+						metricValues, ok := vms.CellMetricMap[key]
+						if !ok {
+							metricValues.Tags = make(map[string]float64)
+							vms.CellMetricMap[key] = metricValues
+						}
+						for _, metricName := range vms.MetricNames {
+							if counter.Name == metricName {
+								metricValues.Tags[metricName] = float64(counter.Total)
+							}
+						}
+						metricValues.IP = envelope.Tags[vms.TagIP]
+						metricValues.Job = envelope.Tags[vms.TagJob]
+						metricValues.Index = envelope.Tags[vms.TagIx]
+						metricValues.LastSeen = time.Now()
+						vms.CellMetricMap[key] = metricValues
+					}
+				}
+				common.MapLock.Unlock()
+			}
+			if streamReadStarted == false {
+				util.WriteToFile("streamReadStarted = false")
+				time.Sleep(10 * time.Second)
 			}
 		}
 	}()

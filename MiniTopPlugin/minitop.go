@@ -27,12 +27,15 @@ var (
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
-		{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}},
+		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}},  // timer events are only http request timings
+		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
 	gaugeSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
+		//{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
-		{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}},
+		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}},  // timer events are only http request timings
+		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
 	accessToken      string
 	useRepRtrLogging bool
@@ -74,21 +77,18 @@ func startMT(cliConnection plugin.CliConnection) {
 
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
 	go func() {
-		rlpCtx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		rlpCtx := context.TODO()
 		var envelopeStream loggregator.EnvelopeStream
 		var streamReadStarted = false
 		for {
 			if streamErrored == true { // if the stream errored (occurs quite often), we need to re-establish it
 				util.WriteToFile("(re)starting rlpGatewayClient...")
-				rlpCtx = context.TODO()
 				rlpGatewayClient := loggregator.NewRLPGatewayClient(
 					strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 					loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
 					loggregator.WithRLPGatewayErrChan(errorChan),
-					loggregator.WithRLPGatewayMaxRetries(1000),
+					//loggregator.WithRLPGatewayMaxRetries(1000),
 				)
-
 				if useRepRtrLogging {
 					envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
 				} else {

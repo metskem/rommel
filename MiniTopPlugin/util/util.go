@@ -15,12 +15,12 @@ func GetFormattedUnit(unitValue float64) string {
 		return "-"
 	}
 	unitValueInt := int(unitValue)
-	if unitValueInt >= 10*1024*1024*1024 {
-		return fmt.Sprintf("%dG", unitValueInt/1024/1024/1024)
-	} else if unitValueInt >= 10*1024*1024 {
-		return fmt.Sprintf("%dM", unitValueInt/1024/1024)
-	} else if unitValueInt >= 10*1024 {
-		return fmt.Sprintf("%dK", unitValueInt/1024)
+	if unitValueInt >= 10*1000*1000*1000 {
+		return fmt.Sprintf("%dG", unitValueInt/1000/1000/1000)
+	} else if unitValueInt >= 10*1000*1000 {
+		return fmt.Sprintf("%dM", unitValueInt/1000/1000)
+	} else if unitValueInt >= 10*1000 {
+		return fmt.Sprintf("%dK", unitValueInt/1000)
 	} else {
 		return fmt.Sprintf("%d", unitValueInt)
 	}
@@ -49,19 +49,23 @@ func GetFormattedElapsedTime(timeInNanoSecs float64) string {
 	}
 }
 
-func WriteToFile(text string) {
+func WriteToFileDebug(text string) {
 	if conf.UseDebugging {
-		var err error
-		if logFile == nil {
-			if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
-				fmt.Printf("Error opening file: %v\n", err)
-				os.Exit(1)
-			}
-		}
-		//defer func() { _ = logFile.Close() }()
-		//_, _ = logFile.WriteString(text + "\n")
-		_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
+		WriteToFile(text)
 	}
+}
+
+func WriteToFile(text string) {
+	var err error
+	if logFile == nil {
+		if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+			fmt.Printf("Error opening file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	//defer func() { _ = logFile.Close() }()
+	//_, _ = logFile.WriteString(text + "\n")
+	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }
 
 func TruncateString(s string, length int) string {

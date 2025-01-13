@@ -74,33 +74,25 @@ func startMT(cliConnection plugin.CliConnection) {
 			if accessToken, err = cliConnection.AccessToken(); err != nil {
 				util.WriteToFile(fmt.Sprintf("tokenRefresher failed : %s)", err))
 			}
-			if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
-				util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
-			} else {
-				token := strings.Fields(oauthToken[0])[1]
-				tokenAttacher.refreshToken(token)
-				util.WriteToFile("oauth token refreshed")
-			}
+			refreshToken(tokenAttacher, cliConnection)
 			time.Sleep(15 * time.Minute)
 		}
 	}()
 
-	firstStart := true
+	firstTime := true
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
 
 	go func() {
 		var envelopeStream loggregator.EnvelopeStream
 		var streamReadStarted = false
 		for {
-			if streamErrored || firstStart { // if the stream errored (occurs quite often), we need to re-establish it
-				firstStart = false
+			if streamErrored || firstTime { // if the stream errored (occurs quite often), we need to re-establish it
 				util.WriteToFile("(re)starting rlpGatewayClient...")
-				if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
-					util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
-				} else {
-					token := strings.Fields(oauthToken[0])[1]
-					tokenAttacher.refreshToken(token)
+				refreshToken(tokenAttacher, cliConnection)
+				if !firstTime {
+					ctxCancel()
 				}
+				firstTime = false
 				rlpGatewayClient := loggregator.NewRLPGatewayClient(
 					strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 					loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
@@ -241,6 +233,7 @@ func startMT(cliConnection plugin.CliConnection) {
 			}
 			if streamReadStarted == false {
 				util.WriteToFile("streamReadStarted = false")
+				refreshToken(tokenAttacher, cliConnection)
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -280,6 +273,17 @@ func startMT(cliConnection plugin.CliConnection) {
 	}()
 
 	startCui()
+}
+
+func refreshToken(tokenAttacher *TokenAttacher, cliConnection plugin.CliConnection) {
+	if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
+		util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
+	} else {
+		token := strings.Fields(oauthToken[0])[1]
+		tokenAttacher.refreshToken(token)
+		util.WriteToFile("oauth token refreshed")
+	}
+
 }
 
 // StartCui - Start the Console User Interface to present the metrics

@@ -3,6 +3,7 @@ package vms
 import (
 	"github.com/awesome-gocui/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/common"
+	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"regexp"
 	"sort"
 )
@@ -71,6 +72,7 @@ func spacePressed(g *gocui.Gui, v *gocui.View) error {
 }
 
 func colorSortedColumn() {
+	util.WriteToFileDebug("colorSortedColumn VMs")
 	common.LastSeenColor = common.ColorWhite
 	common.AgeColor = common.ColorWhite
 	//ixColor = common.ColorWhite

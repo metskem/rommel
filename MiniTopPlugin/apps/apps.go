@@ -67,6 +67,7 @@ var (
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
+	util.WriteToFileDebug("Setting keybindings for apps")
 	_ = gui.SetKeybinding("ApplicationView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = gui.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("", gocui.KeySpace, gocui.ModNone, common.SpacePressed)

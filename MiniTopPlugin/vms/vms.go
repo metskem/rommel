@@ -81,7 +81,7 @@ func (a *VMView) Layout(g *gocui.Gui) error {
 }
 
 func ShowView(gui *gocui.Gui) {
-	util.WriteToFile("ShowView VMView")
+	util.WriteToFileDebug("ShowView VMView")
 	colorSortedColumn()
 
 	gui.Update(func(g *gocui.Gui) error {
@@ -91,6 +91,7 @@ func ShowView(gui *gocui.Gui) {
 }
 
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFile("resetFilters VMView")
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
 	common.FilterStrings[filterFieldIP] = ""
@@ -98,7 +99,7 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 }
 
 func layout(g *gocui.Gui) (err error) {
-	util.WriteToFile("layout VMView")
+	util.WriteToFileDebug("layout VMView")
 	if common.ActiveView != common.VMView {
 		return nil
 	}
@@ -145,7 +146,7 @@ func layout(g *gocui.Gui) (err error) {
 }
 
 func refreshViewContent(gui *gocui.Gui) {
-	util.WriteToFile("refreshViewContent VMView")
+	util.WriteToFileDebug("refreshViewContent VMView")
 	_, maxY := gui.Size()
 
 	if summaryView != nil {

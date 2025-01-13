@@ -9,6 +9,7 @@ var (
 	ApiAddr      string
 	ShardId      = "MiniTopPlugin"
 	IntervalSecs = 1
+	UseDebugging bool
 )
 
 func EnvironmentComplete(cliConnection plugin.CliConnection) bool {

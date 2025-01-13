@@ -40,13 +40,14 @@ var (
 	accessToken      string
 	useRepRtrLogging bool
 	gui              *gocui.Gui
-	streamErrored    = true
+	streamErrored    = false
 )
 
 func startMT(cliConnection plugin.CliConnection) {
 	flaggy.DefaultParser.ShowHelpOnUnexpected = false
 	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
 	flaggy.Bool(&useRepRtrLogging, "l", "includelogs", "Include logs from REP and RTR (more CPU overhead)")
+	flaggy.Bool(&conf.UseDebugging, "d", "debug", "Turn debugging on/off")
 	flaggy.Parse()
 	if !conf.EnvironmentComplete(cliConnection) {
 		os.Exit(8)
@@ -54,10 +55,13 @@ func startMT(cliConnection plugin.CliConnection) {
 
 	errorChan := make(chan error)
 
+	rlpCtx, ctxCancel := context.WithCancel(context.Background())
+
 	go func() {
 		for err := range errorChan {
 			util.WriteToFile(fmt.Sprintf("from errorChannel: %s\n", err.Error()))
 			streamErrored = true
+			ctxCancel()
 		}
 	}()
 
@@ -68,26 +72,39 @@ func startMT(cliConnection plugin.CliConnection) {
 	go func() {
 		for {
 			if accessToken, err = cliConnection.AccessToken(); err != nil {
-				fmt.Printf("tokenRefresher failed : %s)", err)
+				util.WriteToFile(fmt.Sprintf("tokenRefresher failed : %s)", err))
 			}
-			tokenAttacher.refreshToken(accessToken)
+			if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
+				util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
+			} else {
+				token := strings.Fields(oauthToken[0])[1]
+				tokenAttacher.refreshToken(token)
+				util.WriteToFile("oauth token refreshed")
+			}
 			time.Sleep(15 * time.Minute)
 		}
 	}()
 
+	firstStart := true
 	time.Sleep(1 * time.Second) // wait for uaa token to be fetched
+
 	go func() {
-		rlpCtx := context.TODO()
 		var envelopeStream loggregator.EnvelopeStream
 		var streamReadStarted = false
 		for {
-			if streamErrored == true { // if the stream errored (occurs quite often), we need to re-establish it
+			if streamErrored || firstStart { // if the stream errored (occurs quite often), we need to re-establish it
+				firstStart = false
 				util.WriteToFile("(re)starting rlpGatewayClient...")
+				if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
+					util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
+				} else {
+					token := strings.Fields(oauthToken[0])[1]
+					tokenAttacher.refreshToken(token)
+				}
 				rlpGatewayClient := loggregator.NewRLPGatewayClient(
 					strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 					loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
 					loggregator.WithRLPGatewayErrChan(errorChan),
-					//loggregator.WithRLPGatewayMaxRetries(1000),
 				)
 				if useRepRtrLogging {
 					envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
@@ -224,13 +241,14 @@ func startMT(cliConnection plugin.CliConnection) {
 			}
 			if streamReadStarted == false {
 				util.WriteToFile("streamReadStarted = false")
-				time.Sleep(10 * time.Second)
+				time.Sleep(5 * time.Second)
 			}
 		}
 	}()
 
 	// start up the routine that cleans up the metrics map (apps that haven't been seen for a while are removed)
 	go func() {
+		util.WriteToFile("starting app metric cleanup")
 		for range time.NewTicker(1 * time.Minute).C {
 			common.MapLock.Lock()
 			var deleted = 0
@@ -248,6 +266,7 @@ func startMT(cliConnection plugin.CliConnection) {
 
 	// start up the routine that checks how old the value is in AppInstanceCount and lowers it if necessary
 	go func() {
+		util.WriteToFile("starting instance metric cleanup")
 		for range time.NewTicker(10 * time.Second).C {
 			common.MapLock.Lock()
 			for key, appInstanceCounter := range apps.AppInstanceCounters {
@@ -265,16 +284,18 @@ func startMT(cliConnection plugin.CliConnection) {
 
 // StartCui - Start the Console User Interface to present the metrics
 func startCui() {
+	util.WriteToFile("starting CUI")
 	var err error
 	gui, err = gocui.NewGui(gocui.OutputNormal, false)
 	if err != nil {
-		fmt.Println(err)
+		util.WriteToFile(fmt.Sprintf("failed to start CUI: %s", err))
 		os.Exit(1)
 	}
 	defer gui.Close()
 
 	//  main UI refresh loop
 	go func() {
+		util.WriteToFile("starting main UI refresh loop")
 		gui.SetManager(vms.NewVMView()) // we startup with the VMView
 		for streamErrored == false {
 			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
@@ -301,7 +322,7 @@ func startCui() {
 	}()
 
 	if err = gui.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		fmt.Println(err)
+		util.WriteToFile(fmt.Sprintf("error in mainLoop: %s", err))
 		gui.Close()
 		os.Exit(1)
 	}

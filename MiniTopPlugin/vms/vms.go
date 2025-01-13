@@ -53,7 +53,7 @@ var (
 	metric3xx                     = "responses.3xx"
 	metric4xx                     = "responses.4xx"
 	metric5xx                     = "responses.5xx"
-	MetricNames                   = []string{TagJob, TagIP, metricAge, metricUpTime, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricNetInterfaceCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
+	MetricNames                   = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricNetInterfaceCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -81,6 +81,7 @@ func (a *VMView) Layout(g *gocui.Gui) error {
 }
 
 func ShowView(gui *gocui.Gui) {
+	util.WriteToFile("ShowView VMView")
 	colorSortedColumn()
 
 	gui.Update(func(g *gocui.Gui) error {
@@ -97,6 +98,7 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 }
 
 func layout(g *gocui.Gui) (err error) {
+	util.WriteToFile("layout VMView")
 	if common.ActiveView != common.VMView {
 		return nil
 	}
@@ -143,6 +145,7 @@ func layout(g *gocui.Gui) (err error) {
 }
 
 func refreshViewContent(gui *gocui.Gui) {
+	util.WriteToFile("refreshViewContent VMView")
 	_, maxY := gui.Size()
 
 	if summaryView != nil {

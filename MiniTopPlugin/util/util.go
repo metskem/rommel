@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"os"
 	"time"
 )
@@ -49,16 +50,18 @@ func GetFormattedElapsedTime(timeInNanoSecs float64) string {
 }
 
 func WriteToFile(text string) {
-	var err error
-	if logFile == nil {
-		if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
-			fmt.Printf("Error opening file: %v\n", err)
-			os.Exit(1)
+	if conf.UseDebugging {
+		var err error
+		if logFile == nil {
+			if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+				fmt.Printf("Error opening file: %v\n", err)
+				os.Exit(1)
+			}
 		}
+		//defer func() { _ = logFile.Close() }()
+		//_, _ = logFile.WriteString(text + "\n")
+		_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 	}
-	//defer func() { _ = logFile.Close() }()
-	//_, _ = logFile.WriteString(text + "\n")
-	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }
 
 func TruncateString(s string, length int) string {

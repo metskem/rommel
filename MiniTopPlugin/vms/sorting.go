@@ -38,30 +38,30 @@ const (
 )
 
 var (
-	upTimeColor                            = common.ColorWhite
-	JobColor                               = common.ColorWhite
-	containerUsageMemoryColor              = common.ColorWhite
-	CapacityTotalDiskColor                 = common.ColorWhite
-	containerUsageDiskColor                = common.ColorWhite
-	containerCountColor                    = common.ColorWhite
-	capacityTotalMemoryColor               = common.ColorWhite
-	capacityAllocatedMemoryColor           = common.ColorWhite
-	IPTablesRuleCountColor                 = common.ColorWhite
-	NetInterfaceCountColor                 = common.ColorWhite
-	OverlayTxBytesColor                    = common.ColorWhite
-	OverlayRxBytesColor                    = common.ColorWhite
-	OverlayRxDroppedColor                  = common.ColorWhite
-	OverlayTxDropped                       = common.ColorWhite
-	HTTPRouteCountColor                    = common.ColorWhite
-	DopplerConnectionsColor                = common.ColorWhite
-	ActiveDrainsColor                      = common.ColorWhite
-	numCPUSColor                           = common.ColorWhite
-	responsesColor                         = common.ColorWhite
-	r2xxColor                              = common.ColorWhite
-	r3xxColor                              = common.ColorWhite
-	r4xxColor                              = common.ColorWhite
-	r5xxColor                              = common.ColorWhite
-	activeSortFieldColor         SortField = sortByIP
+	upTimeColor                  = common.ColorWhite
+	JobColor                     = common.ColorWhite
+	containerUsageMemoryColor    = common.ColorWhite
+	CapacityTotalDiskColor       = common.ColorWhite
+	containerUsageDiskColor      = common.ColorWhite
+	containerCountColor          = common.ColorWhite
+	capacityTotalMemoryColor     = common.ColorWhite
+	capacityAllocatedMemoryColor = common.ColorWhite
+	IPTablesRuleCountColor       = common.ColorWhite
+	//NetInterfaceCountColor                 = common.ColorWhite
+	OverlayTxBytesColor   = common.ColorWhite
+	OverlayRxBytesColor   = common.ColorWhite
+	OverlayRxDroppedColor = common.ColorWhite
+	OverlayTxDropped      = common.ColorWhite
+	HTTPRouteCountColor   = common.ColorWhite
+	//DopplerConnectionsColor                = common.ColorWhite
+	//ActiveDrainsColor                      = common.ColorWhite
+	numCPUSColor                   = common.ColorWhite
+	responsesColor                 = common.ColorWhite
+	r2xxColor                      = common.ColorWhite
+	r3xxColor                      = common.ColorWhite
+	r4xxColor                      = common.ColorWhite
+	r5xxColor                      = common.ColorWhite
+	activeSortFieldColor SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -102,8 +102,8 @@ func colorSortedColumn() {
 		capacityAllocatedMemoryColor = common.ColorBlue
 	case sortByIPTablesRuleCount:
 		IPTablesRuleCountColor = common.ColorBlue
-	case sortByNetInterfaceCount:
-		NetInterfaceCountColor = common.ColorBlue
+	//case sortByNetInterfaceCount:
+	//	NetInterfaceCountColor = common.ColorBlue
 	case sortByOverlayTxBytes:
 		OverlayTxBytesColor = common.ColorBlue
 	case sortByOverlayRxBytes:
@@ -114,10 +114,10 @@ func colorSortedColumn() {
 		OverlayTxDropped = common.ColorBlue
 	case sortByHTTPRouteCount:
 		HTTPRouteCountColor = common.ColorBlue
-	case sortByDopplerConnections:
-		DopplerConnectionsColor = common.ColorBlue
-	case sortByActiveDrains:
-		ActiveDrainsColor = common.ColorBlue
+	//case sortByDopplerConnections:
+	//	DopplerConnectionsColor = common.ColorBlue
+	//case sortByActiveDrains:
+	//	ActiveDrainsColor = common.ColorBlue
 	case sortByNumCPUS:
 		numCPUSColor = common.ColorBlue
 	case sortByResponses:
@@ -185,8 +185,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metricCapacityAllocatedMemory] < p[j].Value.Tags[metricCapacityAllocatedMemory]
 	case sortByIPTablesRuleCount:
 		return p[i].Value.Tags[metricIPTablesRuleCount] < p[j].Value.Tags[metricIPTablesRuleCount]
-	case sortByNetInterfaceCount:
-		return p[i].Value.Tags[metricNetInterfaceCount] < p[j].Value.Tags[metricNetInterfaceCount]
+	//case sortByNetInterfaceCount:
+	//	return p[i].Value.Tags[metricNetInterfaceCount] < p[j].Value.Tags[metricNetInterfaceCount]
 	case sortByOverlayTxBytes:
 		return p[i].Value.Tags[metricOverlayTxBytes] < p[j].Value.Tags[metricOverlayTxBytes]
 	case sortByOverlayRxBytes:

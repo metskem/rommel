@@ -39,21 +39,21 @@ var (
 	metricCapacityTotalMemory     = "CapacityTotalMemory"
 	metricCapacityAllocatedMemory = "CapacityAllocatedMemory"
 	metricIPTablesRuleCount       = "IPTablesRuleCount"
-	metricNetInterfaceCount       = "NetInterfaceCount"
-	metricOverlayTxBytes          = "OverlayTxBytes"
-	metricOverlayRxBytes          = "OverlayRxBytes"
-	metricOverlayRxDropped        = "OverlayRxDropped"
-	metricOverlayTxDropped        = "OverlayTxDropped"
-	metricHTTPRouteCount          = "HTTPRouteCount"
-	metricDopplerConnections      = "doppler_connections"
-	metricActiveDrains            = "active_drains"
-	metricNumCPUS                 = "numCPUS"
-	metricResponses               = "responses"
-	metric2xx                     = "responses.2xx"
-	metric3xx                     = "responses.3xx"
-	metric4xx                     = "responses.4xx"
-	metric5xx                     = "responses.5xx"
-	MetricNames                   = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricNetInterfaceCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
+	//metricNetInterfaceCount       = "NetInterfaceCount"
+	metricOverlayTxBytes     = "OverlayTxBytes"
+	metricOverlayRxBytes     = "OverlayRxBytes"
+	metricOverlayRxDropped   = "OverlayRxDropped"
+	metricOverlayTxDropped   = "OverlayTxDropped"
+	metricHTTPRouteCount     = "HTTPRouteCount"
+	metricDopplerConnections = "doppler_connections"
+	metricActiveDrains       = "active_drains"
+	metricNumCPUS            = "numCPUS"
+	metricResponses          = "responses"
+	metric2xx                = "responses.2xx"
+	metric3xx                = "responses.3xx"
+	metric4xx                = "responses.4xx"
+	metric5xx                = "responses.5xx"
+	MetricNames              = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -163,11 +163,11 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %s\n", common.ColorYellow,
-			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "NICs", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "Resp", "2xx", "3xx", "4xx", "5xx", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %s\n", common.ColorYellow,
+			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "Resp", "2xx", "3xx", "4xx", "5xx", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortFieldColor) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					JobColor, util.TruncateString(pairlist.Value.Job, 13), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
@@ -180,7 +180,7 @@ func refreshViewContent(gui *gocui.Gui) {
 					containerUsageDiskColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[metricContainerUsageDisk]), common.ColorReset,
 					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricContainerCount]), common.ColorReset,
 					IPTablesRuleCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricIPTablesRuleCount]), common.ColorReset,
-					NetInterfaceCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNetInterfaceCount]), common.ColorReset,
+					//NetInterfaceCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNetInterfaceCount]), common.ColorReset,
 					OverlayTxBytesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayTxBytes]), common.ColorReset,
 					OverlayRxBytesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayRxBytes]), common.ColorReset,
 					HTTPRouteCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricHTTPRouteCount]), common.ColorReset,

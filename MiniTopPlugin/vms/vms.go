@@ -57,8 +57,8 @@ var (
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
-	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
-	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
+	_ = gui.SetKeybinding("VMView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
+	_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, common.ShowFilterView)
 	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
@@ -165,7 +165,7 @@ func refreshViewContent(gui *gocui.Gui) {
 		mainView.Title = "VMs"
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %s\n", common.ColorYellow,
 			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "Resp", "2xx", "3xx", "4xx", "5xx", common.ColorReset))
-		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortFieldColor) {
+		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
 				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
@@ -180,14 +180,11 @@ func refreshViewContent(gui *gocui.Gui) {
 					containerUsageDiskColor, util.GetFormattedUnit(1024*1024*pairlist.Value.Tags[metricContainerUsageDisk]), common.ColorReset,
 					containerCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricContainerCount]), common.ColorReset,
 					IPTablesRuleCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricIPTablesRuleCount]), common.ColorReset,
-					//NetInterfaceCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNetInterfaceCount]), common.ColorReset,
 					OverlayTxBytesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayTxBytes]), common.ColorReset,
 					OverlayRxBytesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayRxBytes]), common.ColorReset,
 					HTTPRouteCountColor, util.GetFormattedUnit(pairlist.Value.Tags[metricHTTPRouteCount]), common.ColorReset,
 					OverlayRxDroppedColor, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayRxDropped]), common.ColorReset,
 					OverlayTxDropped, util.GetFormattedUnit(pairlist.Value.Tags[metricOverlayTxDropped]), common.ColorReset,
-					//DopplerConnectionsColor, util.GetFormattedUnit(pairlist.Value.Tags[metricDopplerConnections]), common.ColorReset,
-					//ActiveDrainsColor, util.GetFormattedUnit(pairlist.Value.Tags[metricActiveDrains]), common.ColorReset,
 					responsesColor, util.GetFormattedUnit(pairlist.Value.Tags[metricResponses]), common.ColorReset,
 					r2xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric2xx]), common.ColorReset,
 					r3xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric3xx]), common.ColorReset,

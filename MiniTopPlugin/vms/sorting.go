@@ -1,6 +1,7 @@
 package vms
 
 import (
+	"fmt"
 	"github.com/awesome-gocui/gocui"
 	"github.com/metskem/rommel/MiniTopPlugin/common"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
@@ -10,26 +11,22 @@ import (
 
 const (
 	sortByLastSeen = iota
-	sortByAge
-	sortByIP
 	sortByJob
+	sortByIP
 	sortByUpTime
+	sortByNumCPUS
+	sortByCapacityTotalMemory
+	sortByCapacityAllocatedMemory
 	sortByContainerUsageMemory
 	sortByCapacityTotalDisk
 	sortByContainerUsageDisk
 	sortByContainerCount
-	sortByCapacityTotalMemory
-	sortByCapacityAllocatedMemory
 	sortByIPTablesRuleCount
-	sortByNetInterfaceCount
 	sortByOverlayTxBytes
 	sortByOverlayRxBytes
+	sortByHTTPRouteCount
 	sortByOverlayRxDropped
 	sortByOverlayTxDropped
-	sortByHTTPRouteCount
-	sortByDopplerConnections
-	sortByActiveDrains
-	sortByNumCPUS
 	sortByResponses
 	sortBy2xx
 	sortBy3xx
@@ -38,30 +35,28 @@ const (
 )
 
 var (
-	upTimeColor                  = common.ColorWhite
-	JobColor                     = common.ColorWhite
-	containerUsageMemoryColor    = common.ColorWhite
-	CapacityTotalDiskColor       = common.ColorWhite
-	containerUsageDiskColor      = common.ColorWhite
-	containerCountColor          = common.ColorWhite
-	capacityTotalMemoryColor     = common.ColorWhite
-	capacityAllocatedMemoryColor = common.ColorWhite
-	IPTablesRuleCountColor       = common.ColorWhite
-	//NetInterfaceCountColor                 = common.ColorWhite
-	OverlayTxBytesColor   = common.ColorWhite
-	OverlayRxBytesColor   = common.ColorWhite
-	OverlayRxDroppedColor = common.ColorWhite
-	OverlayTxDropped      = common.ColorWhite
-	HTTPRouteCountColor   = common.ColorWhite
-	//DopplerConnectionsColor                = common.ColorWhite
-	//ActiveDrainsColor                      = common.ColorWhite
-	numCPUSColor                   = common.ColorWhite
-	responsesColor                 = common.ColorWhite
-	r2xxColor                      = common.ColorWhite
-	r3xxColor                      = common.ColorWhite
-	r4xxColor                      = common.ColorWhite
-	r5xxColor                      = common.ColorWhite
-	activeSortFieldColor SortField = sortByIP
+	upTimeColor                            = common.ColorWhite
+	JobColor                               = common.ColorWhite
+	containerUsageMemoryColor              = common.ColorWhite
+	CapacityTotalDiskColor                 = common.ColorWhite
+	containerUsageDiskColor                = common.ColorWhite
+	containerCountColor                    = common.ColorWhite
+	capacityTotalMemoryColor               = common.ColorWhite
+	capacityAllocatedMemoryColor           = common.ColorWhite
+	IPTablesRuleCountColor                 = common.ColorWhite
+	OverlayTxBytesColor                    = common.ColorWhite
+	OverlayRxBytesColor                    = common.ColorWhite
+	OverlayRxDroppedColor                  = common.ColorWhite
+	OverlayTxDropped                       = common.ColorWhite
+	HTTPRouteCountColor                    = common.ColorWhite
+	numCPUSColor                           = common.ColorWhite
+	responsesColor                         = common.ColorWhite
+	r2xxColor                              = common.ColorWhite
+	r3xxColor                              = common.ColorWhite
+	r4xxColor                              = common.ColorWhite
+	r5xxColor                              = common.ColorWhite
+	activeSortField              SortField = sortByIP
+	activeSortFieldColor         SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -72,16 +67,32 @@ func spacePressed(g *gocui.Gui, v *gocui.View) error {
 }
 
 func colorSortedColumn() {
-	util.WriteToFileDebug("colorSortedColumn VMs")
 	common.LastSeenColor = common.ColorWhite
 	common.AgeColor = common.ColorWhite
-	//ixColor = common.ColorWhite
 	common.IPColor = common.ColorWhite
-	switch activeSortFieldColor {
+	JobColor = common.ColorWhite
+	upTimeColor = common.ColorWhite
+	numCPUSColor = common.ColorWhite
+	capacityTotalMemoryColor = common.ColorWhite
+	capacityAllocatedMemoryColor = common.ColorWhite
+	containerUsageMemoryColor = common.ColorWhite
+	CapacityTotalDiskColor = common.ColorWhite
+	containerUsageDiskColor = common.ColorWhite
+	containerCountColor = common.ColorWhite
+	IPTablesRuleCountColor = common.ColorWhite
+	OverlayTxBytesColor = common.ColorWhite
+	OverlayRxBytesColor = common.ColorWhite
+	HTTPRouteCountColor = common.ColorWhite
+	OverlayRxDroppedColor = common.ColorWhite
+	OverlayTxDropped = common.ColorWhite
+	responsesColor = common.ColorWhite
+	r2xxColor = common.ColorWhite
+	r3xxColor = common.ColorWhite
+	r4xxColor = common.ColorWhite
+	r5xxColor = common.ColorWhite
+	switch activeSortField {
 	case sortByLastSeen:
 		common.LastSeenColor = common.ColorBlue
-	case sortByAge:
-		common.AgeColor = common.ColorBlue
 	case sortByJob:
 		JobColor = common.ColorBlue
 	case sortByIP:
@@ -102,8 +113,6 @@ func colorSortedColumn() {
 		capacityAllocatedMemoryColor = common.ColorBlue
 	case sortByIPTablesRuleCount:
 		IPTablesRuleCountColor = common.ColorBlue
-	//case sortByNetInterfaceCount:
-	//	NetInterfaceCountColor = common.ColorBlue
 	case sortByOverlayTxBytes:
 		OverlayTxBytesColor = common.ColorBlue
 	case sortByOverlayRxBytes:
@@ -114,10 +123,6 @@ func colorSortedColumn() {
 		OverlayTxDropped = common.ColorBlue
 	case sortByHTTPRouteCount:
 		HTTPRouteCountColor = common.ColorBlue
-	//case sortByDopplerConnections:
-	//	DopplerConnectionsColor = common.ColorBlue
-	//case sortByActiveDrains:
-	//	ActiveDrainsColor = common.ColorBlue
 	case sortByNumCPUS:
 		numCPUSColor = common.ColorBlue
 	case sortByResponses:
@@ -131,6 +136,7 @@ func colorSortedColumn() {
 	case sortBy5xx:
 		r5xxColor = common.ColorBlue
 	}
+	util.WriteToFileDebug(fmt.Sprintf("colorSortedColumn VMs, activeSortField: %d", activeSortField))
 }
 
 // based on https://stackoverflow.com/questions/18695346/how-to-sort-a-mapstringint-by-its-values
@@ -163,8 +169,6 @@ func (p PairList) Less(i, j int) bool {
 	switch p[i].SortBy {
 	case sortByLastSeen:
 		return p[i].Value.LastSeen.Unix() < p[j].Value.LastSeen.Unix()
-	case sortByAge:
-		return p[i].Value.Tags[metricAge] < p[j].Value.Tags[metricAge]
 	case sortByJob:
 		return p[i].Value.Job < p[j].Value.Job
 	case sortByIP:
@@ -185,8 +189,6 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metricCapacityAllocatedMemory] < p[j].Value.Tags[metricCapacityAllocatedMemory]
 	case sortByIPTablesRuleCount:
 		return p[i].Value.Tags[metricIPTablesRuleCount] < p[j].Value.Tags[metricIPTablesRuleCount]
-	//case sortByNetInterfaceCount:
-	//	return p[i].Value.Tags[metricNetInterfaceCount] < p[j].Value.Tags[metricNetInterfaceCount]
 	case sortByOverlayTxBytes:
 		return p[i].Value.Tags[metricOverlayTxBytes] < p[j].Value.Tags[metricOverlayTxBytes]
 	case sortByOverlayRxBytes:
@@ -197,10 +199,6 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metricOverlayTxDropped] < p[j].Value.Tags[metricOverlayTxDropped]
 	case sortByHTTPRouteCount:
 		return p[i].Value.Tags[metricHTTPRouteCount] < p[j].Value.Tags[metricHTTPRouteCount]
-	case sortByDopplerConnections:
-		return p[i].Value.Tags[metricDopplerConnections] < p[j].Value.Tags[metricDopplerConnections]
-	case sortByActiveDrains:
-		return p[i].Value.Tags[metricActiveDrains] < p[j].Value.Tags[metricActiveDrains]
 	case sortByNumCPUS:
 		return p[i].Value.Tags[metricNumCPUS] < p[j].Value.Tags[metricNumCPUS]
 	case sortByResponses:
@@ -235,4 +233,26 @@ func passFilter(pairList Pair) bool {
 		return filterPassed
 	}
 	return false
+}
+
+func arrowRight(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	if activeSortField != sortBy5xx {
+		activeSortField++
+	}
+	util.WriteToFileDebug(fmt.Sprintf("arrowRight VMs, activeSortField: %d", activeSortField))
+	colorSortedColumn()
+	return nil
+}
+
+func arrowLeft(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	if activeSortField != sortByLastSeen {
+		activeSortField--
+	}
+	util.WriteToFileDebug(fmt.Sprintf("arrowLeft VMs, activeSortField: %d", activeSortField))
+	colorSortedColumn()
+	return nil
 }

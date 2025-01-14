@@ -97,6 +97,7 @@ func startMT(cliConnection plugin.CliConnection) {
 					strings.Replace(conf.ApiAddr, "api.sys", "log-stream.sys", 1),
 					loggregator.WithRLPGatewayHTTPClient(tokenAttacher),
 					loggregator.WithRLPGatewayErrChan(errorChan),
+					loggregator.WithRLPGatewayMaxRetries(1000),
 				)
 				if useRepRtrLogging {
 					envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})

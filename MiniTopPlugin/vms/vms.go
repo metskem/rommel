@@ -19,10 +19,9 @@ type CellMetric struct {
 }
 
 const (
-	filterFieldIP int = iota
-	TagIP             = "ip"
-	TagIx             = "index"
-	TagJob            = "job"
+	TagIP  = "ip"
+	TagIx  = "index"
+	TagJob = "job"
 )
 
 var (
@@ -61,12 +60,12 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, common.ShowFilterView)
-	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
-	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
-	//for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
-	//_ = gui.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
-	//}
+	for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
+		_ = gui.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
+	}
 }
 
 type VMView struct {
@@ -94,7 +93,7 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	util.WriteToFile("resetFilters VMView")
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	common.FilterStrings[filterFieldIP] = ""
+	common.FilterStrings[common.FilterFieldIP] = ""
 	return nil
 }
 
@@ -126,9 +125,9 @@ func layout(g *gocui.Gui) (err error) {
 			v, _ := g.SetCurrentView("FilterView")
 			v.Title = "Filter"
 			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
-			if activeSortFieldColor == sortByIP {
+			if activeSortField == sortByIP {
 				_, _ = fmt.Fprintln(v, " IP")
-				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldIP])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldIP])
 			}
 		}
 	}
@@ -198,5 +197,37 @@ func refreshViewContent(gui *gocui.Gui) {
 				}
 			}
 		}
+	}
+}
+
+func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if activeSortField == sortByJob {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(common.FilterStrings[common.FilterFieldJob]) > 0 {
+					common.FilterStrings[common.FilterFieldJob] = common.FilterStrings[common.FilterFieldJob][:len(common.FilterStrings[common.FilterFieldJob])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldJob])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				common.FilterStrings[common.FilterFieldJob] = common.FilterStrings[common.FilterFieldJob] + string(ch)
+			}
+		}
+		if activeSortField == sortByIP {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(common.FilterStrings[common.FilterFieldIP]) > 0 {
+					common.FilterStrings[common.FilterFieldIP] = common.FilterStrings[common.FilterFieldIP][:len(common.FilterStrings[common.FilterFieldIP])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldIP])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				common.FilterStrings[common.FilterFieldIP] = common.FilterStrings[common.FilterFieldIP] + string(ch)
+			}
+		}
+		return nil
 	}
 }

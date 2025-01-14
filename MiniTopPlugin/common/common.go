@@ -11,6 +11,13 @@ import (
 )
 
 const (
+	FilterFieldIP int = iota
+	FilterFieldJob
+	FilterFieldAppName int = iota
+	FilterFieldOrg
+	FilterFieldSpace
+)
+const (
 	AppInstanceView int = iota
 	AppView
 	VMView
@@ -181,6 +188,6 @@ func handleEnter(g *gocui.Gui, v *gocui.View) error {
 	ShowHelp = false
 	_ = g.DeleteView("FilterView")
 	_ = g.DeleteView("HelpView")
-	_, _ = g.SetCurrentView("ApplicationView")
+	ViewToggled = true
 	return nil
 }

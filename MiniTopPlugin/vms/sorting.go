@@ -218,8 +218,8 @@ func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func passFilter(pairList Pair) bool {
 	filterPassed := true
-	filterRegex := regexp.MustCompile(common.FilterStrings[filterFieldIP])
-	if !(common.FilterStrings[filterFieldIP] == "") && !filterRegex.MatchString(pairList.Value.IP) {
+	filterRegex := regexp.MustCompile(common.FilterStrings[common.FilterFieldIP])
+	if !(common.FilterStrings[common.FilterFieldIP] == "") && !filterRegex.MatchString(pairList.Value.IP) {
 		filterPassed = false
 	}
 	oneTagValueFound := false

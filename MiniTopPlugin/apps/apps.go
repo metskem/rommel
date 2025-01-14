@@ -31,9 +31,6 @@ type AppInstanceCounter struct {
 }
 
 const (
-	filterFieldAppName int = iota
-	filterFieldOrg
-	filterFieldSpace
 	MetricCpu            = "cpu"
 	metricAge            = "container_age"
 	metricCpuEntitlement = "cpu_entitlement"
@@ -125,9 +122,9 @@ func ShowView(gui *gocui.Gui) {
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	common.FilterStrings[filterFieldAppName] = ""
-	common.FilterStrings[filterFieldOrg] = ""
-	common.FilterStrings[filterFieldSpace] = ""
+	common.FilterStrings[common.FilterFieldAppName] = ""
+	common.FilterStrings[common.FilterFieldOrg] = ""
+	common.FilterStrings[common.FilterFieldSpace] = ""
 	return nil
 }
 
@@ -160,15 +157,15 @@ func layout(g *gocui.Gui) (err error) {
 			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
 			if activeAppsSortField == sortByAppName || activeInstancesSortField == sortByAppName {
 				_, _ = fmt.Fprintln(v, " AppName")
-				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldAppName])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldAppName])
 			}
 			if activeAppsSortField == sortBySpace || activeInstancesSortField == sortBySpace {
 				_, _ = fmt.Fprintln(v, " Space")
-				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldSpace])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldSpace])
 			}
 			if activeAppsSortField == sortByOrg || activeInstancesSortField == sortByOrg {
 				_, _ = fmt.Fprintln(v, " Org")
-				_, _ = fmt.Fprintln(v, common.FilterStrings[filterFieldOrg])
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldOrg])
 			}
 		}
 	}
@@ -282,41 +279,41 @@ func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		if activeInstancesSortField == sortByAppName || activeAppsSortField == sortByAppName {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(common.FilterStrings[filterFieldAppName]) > 0 {
-					common.FilterStrings[filterFieldAppName] = common.FilterStrings[filterFieldAppName][:len(common.FilterStrings[filterFieldAppName])-1]
-					_ = v.SetCursor(len(common.FilterStrings[filterFieldAppName])+1, 1)
+				if len(common.FilterStrings[common.FilterFieldAppName]) > 0 {
+					common.FilterStrings[common.FilterFieldAppName] = common.FilterStrings[common.FilterFieldAppName][:len(common.FilterStrings[common.FilterFieldAppName])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldAppName])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				common.FilterStrings[filterFieldAppName] = common.FilterStrings[filterFieldAppName] + string(ch)
+				common.FilterStrings[common.FilterFieldAppName] = common.FilterStrings[common.FilterFieldAppName] + string(ch)
 			}
 		}
 		if activeInstancesSortField == sortBySpace || activeAppsSortField == sortBySpace {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(common.FilterStrings[filterFieldSpace]) > 0 {
-					common.FilterStrings[filterFieldSpace] = common.FilterStrings[filterFieldSpace][:len(common.FilterStrings[filterFieldSpace])-1]
-					_ = v.SetCursor(len(common.FilterStrings[filterFieldSpace])+1, 1)
+				if len(common.FilterStrings[common.FilterFieldSpace]) > 0 {
+					common.FilterStrings[common.FilterFieldSpace] = common.FilterStrings[common.FilterFieldSpace][:len(common.FilterStrings[common.FilterFieldSpace])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldSpace])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				common.FilterStrings[filterFieldSpace] = common.FilterStrings[filterFieldSpace] + string(ch)
+				common.FilterStrings[common.FilterFieldSpace] = common.FilterStrings[common.FilterFieldSpace] + string(ch)
 			}
 		}
 		if activeInstancesSortField == sortByOrg || activeAppsSortField == sortByOrg {
 			if ch == rune(gocui.KeyBackspace) {
-				if len(common.FilterStrings[filterFieldOrg]) > 0 {
-					common.FilterStrings[filterFieldOrg] = common.FilterStrings[filterFieldOrg][:len(common.FilterStrings[filterFieldOrg])-1]
-					_ = v.SetCursor(len(common.FilterStrings[filterFieldOrg])+1, 1)
+				if len(common.FilterStrings[common.FilterFieldOrg]) > 0 {
+					common.FilterStrings[common.FilterFieldOrg] = common.FilterStrings[common.FilterFieldOrg][:len(common.FilterStrings[common.FilterFieldOrg])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldOrg])+1, 1)
 					v.EditDelete(true)
 				}
 				return nil
 			} else {
 				_, _ = fmt.Fprint(v, string(ch))
-				common.FilterStrings[filterFieldOrg] = common.FilterStrings[filterFieldOrg] + string(ch)
+				common.FilterStrings[common.FilterFieldOrg] = common.FilterStrings[common.FilterFieldOrg] + string(ch)
 			}
 		}
 		return nil

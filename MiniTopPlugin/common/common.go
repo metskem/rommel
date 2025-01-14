@@ -141,7 +141,7 @@ func arrowDown(g *gocui.Gui, v *gocui.View) error {
 	if currentTogglePosition > 0 {
 		currentTogglePosition -= 1
 	}
-	util.WriteToFile(fmt.Sprintf("Toggle arrowDown, currentTogglePostion=%d", currentTogglePosition))
+	util.WriteToFile(fmt.Sprintf("Toggle arrowDown, currentTogglePosition=%d", currentTogglePosition))
 	return nil
 }
 
@@ -149,7 +149,7 @@ func arrowUp(g *gocui.Gui, v *gocui.View) error {
 	if currentTogglePosition < 2 {
 		currentTogglePosition += 1
 	}
-	util.WriteToFile(fmt.Sprintf("Toggle arrowUp, currentTogglePostion=%d", currentTogglePosition))
+	util.WriteToFile(fmt.Sprintf("Toggle arrowUp, currentTogglePosition=%d", currentTogglePosition))
 	return nil
 }
 

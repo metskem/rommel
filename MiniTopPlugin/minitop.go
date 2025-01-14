@@ -234,6 +234,7 @@ func startMT(cliConnection plugin.CliConnection) {
 			if streamReadStarted == false {
 				util.WriteToFile("streamReadStarted = false")
 				refreshToken(tokenAttacher, cliConnection)
+				ctxCancel()
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -273,17 +274,6 @@ func startMT(cliConnection plugin.CliConnection) {
 	}()
 
 	startCui()
-}
-
-func refreshToken(tokenAttacher *TokenAttacher, cliConnection plugin.CliConnection) {
-	if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
-		util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
-	} else {
-		token := strings.Fields(oauthToken[0])[1]
-		tokenAttacher.refreshToken(token)
-		util.WriteToFile("oauth token refreshed")
-	}
-
 }
 
 // StartCui - Start the Console User Interface to present the metrics
@@ -336,8 +326,14 @@ type TokenAttacher struct {
 	token string
 }
 
-func (a *TokenAttacher) refreshToken(token string) {
-	a.token = token
+func refreshToken(tokenAttacher *TokenAttacher, cliConnection plugin.CliConnection) {
+	if oauthToken, err := cliConnection.CliCommandWithoutTerminalOutput("oauth-token"); err != nil {
+		util.WriteToFile(fmt.Sprintf("oauth-token failed : %s)", err))
+	} else {
+		token := strings.Fields(oauthToken[0])[1]
+		tokenAttacher.token = token
+		util.WriteToFile("oauth token refreshed")
+	}
 }
 
 func (a *TokenAttacher) Do(req *http.Request) (*http.Response, error) {

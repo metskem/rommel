@@ -182,6 +182,9 @@ func layout(g *gocui.Gui) (err error) {
 			_, _ = fmt.Fprintln(v, "You can use the following keys:\nh or ? - show this help (<enter> to close)\nq - quit\nf - filter\nR - reset all filters\narrow keys (left/right) - sort\nspace - flip sort order\nt - toggle between app and instance view")
 		}
 	}
+	if common.ShowToggleView {
+		_ = common.ShowToggleViewLayout(g)
+	}
 	return nil
 }
 

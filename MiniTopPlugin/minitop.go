@@ -123,7 +123,6 @@ func startMT(cliConnection plugin.CliConnection) {
 				appguid := envelope.Tags[apps.TagAppId]
 				var key string
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
-					util.WriteToFile(fmt.Sprintf("TotalEnvelopes log: %.0f", common.TotalEnvelopes))
 					key = appguid + "/" + index
 					if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep || envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
 						// if key not in metricMap, add it

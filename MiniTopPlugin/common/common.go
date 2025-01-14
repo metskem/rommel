@@ -13,7 +13,7 @@ import (
 const (
 	FilterFieldIP int = iota
 	FilterFieldJob
-	FilterFieldAppName int = iota
+	FilterFieldAppName
 	FilterFieldOrg
 	FilterFieldSpace
 )
@@ -83,13 +83,6 @@ func FlipSortOrder() {
 			ActiveSortDirection = true
 		}
 	}
-}
-
-func ShowFilterView(g *gocui.Gui, v *gocui.View) error {
-	_ = g // get rid of compiler warning
-	_ = v // get rid of compiler warning
-	ShowFilter = true
-	return nil
 }
 
 func help(g *gocui.Gui, v *gocui.View) error {

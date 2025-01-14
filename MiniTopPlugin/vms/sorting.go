@@ -222,6 +222,10 @@ func passFilter(pairList Pair) bool {
 	if !(common.FilterStrings[common.FilterFieldIP] == "") && !filterRegex.MatchString(pairList.Value.IP) {
 		filterPassed = false
 	}
+	filterRegex = regexp.MustCompile(common.FilterStrings[common.FilterFieldJob])
+	if !(common.FilterStrings[common.FilterFieldJob] == "") && !filterRegex.MatchString(pairList.Value.Job) {
+		filterPassed = false
+	}
 	oneTagValueFound := false
 	for _, value := range pairList.Value.Tags {
 		if value > 0 {

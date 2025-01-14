@@ -59,7 +59,7 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("VMView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
-	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, common.ShowFilterView)
+	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, showFilterView)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -87,6 +87,14 @@ func ShowView(gui *gocui.Gui) {
 		refreshViewContent(g)
 		return nil
 	})
+}
+func showFilterView(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	if activeSortField == sortByIP || activeSortField == sortByJob {
+		common.ShowFilter = true
+	}
+	return nil
 }
 
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
@@ -128,6 +136,10 @@ func layout(g *gocui.Gui) (err error) {
 			if activeSortField == sortByIP {
 				_, _ = fmt.Fprintln(v, " IP")
 				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldIP])
+			}
+			if activeSortField == sortByJob {
+				_, _ = fmt.Fprintln(v, " Job")
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldJob])
 			}
 		}
 	}

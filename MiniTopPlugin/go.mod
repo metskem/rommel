@@ -8,6 +8,7 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	code.cloudfoundry.org/go-loggregator/v10 v10.0.1
 	github.com/awesome-gocui/gocui v1.1.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/integrii/flaggy v1.5.2
 )
 
@@ -22,7 +23,6 @@ require (
 	code.cloudfoundry.org/rfc5424 v0.0.0-20201103192249-000122071b78 // indirect
 	code.cloudfoundry.org/tlsconfig v0.15.0 // indirect
 	code.cloudfoundry.org/ykk v0.0.0-20170424192843-e4df4ce2fd4d // indirect
-	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/SermoDigital/jose v0.9.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
@@ -49,6 +49,7 @@ require (
 	github.com/moby/moby v20.10.27+incompatible // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tedsuo/rata v1.0.0 // indirect
@@ -58,6 +59,7 @@ require (
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250102185135-69823020774d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250106144421-5f5ef82da422 // indirect
 	google.golang.org/grpc v1.69.4 // indirect
 	google.golang.org/protobuf v1.36.2 // indirect

@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
 	"os"
 	"time"
@@ -58,13 +59,11 @@ func WriteToFileDebug(text string) {
 func WriteToFile(text string) {
 	var err error
 	if logFile == nil {
-		if logFile, err = os.OpenFile("/tmp/gocui.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+		if logFile, err = os.OpenFile("/tmp/MiniTop.out", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
 			fmt.Printf("Error opening file: %v\n", err)
 			os.Exit(1)
 		}
 	}
-	//defer func() { _ = logFile.Close() }()
-	//_, _ = logFile.WriteString(text + "\n")
 	_, _ = logFile.WriteString(time.Now().Format(time.RFC3339) + " " + text + "\n")
 }
 
@@ -73,4 +72,34 @@ func TruncateString(s string, length int) string {
 		return s[:length]
 	}
 	return s
+}
+
+func IsTokenValid(tokenString string) (isValid bool) {
+	// Parse the token without verifying the signature
+	token, _, err := jwt.NewParser().ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		fmt.Println("Error parsing token:", err)
+		isValid = false
+	}
+	// Extract claims
+	if claims, claimOk := token.Claims.(jwt.MapClaims); claimOk {
+		if exp, expOk := claims["exp"].(float64); expOk {
+			expireTime := time.Unix(int64(exp), 0)
+			now := time.Now()
+			if now.After(expireTime) {
+				isValid = false
+				WriteToFile(fmt.Sprintf("Token is expired: %s", expireTime.Format(time.RFC3339)))
+			} else {
+				isValid = true
+				WriteToFileDebug(fmt.Sprintf("Token is valid: %s", expireTime.Format(time.RFC3339)))
+			}
+		} else {
+			WriteToFile("No expiration claim in token")
+			isValid = false
+		}
+	} else {
+		WriteToFile("Invalid token claims")
+		isValid = false
+	}
+	return
 }

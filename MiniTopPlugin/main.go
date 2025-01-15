@@ -57,7 +57,7 @@ func preCheck(cliConnection plugin.CliConnection) {
 		fmt.Println(terminal.NotLoggedInText())
 		os.Exit(1)
 	}
-	if accessToken, err = cliConnection.AccessToken(); err != nil {
+	if _, err = cliConnection.AccessToken(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

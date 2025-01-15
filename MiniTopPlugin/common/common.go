@@ -26,6 +26,13 @@ const (
 )
 
 var (
+	LastSeenColor           = ColorWhite
+	AgeColor                = ColorWhite
+	IPColor                 = ColorWhite
+	ColorReset              = "\033[0m"
+	ColorYellow             = "\033[33m"
+	ColorBlue               = "\033[36m"
+	ColorWhite              = "\033[97m"
 	MapLock                 sync.Mutex
 	TotalEnvelopes          float64
 	TotalEnvelopesPerSec    float64
@@ -138,23 +145,28 @@ func ShowToggleViewLayout(g *gocui.Gui) error {
 }
 
 func arrowDown(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
 	if currentTogglePosition > 0 {
 		currentTogglePosition -= 1
 	}
-	util.WriteToFile(fmt.Sprintf("Toggle arrowDown, currentTogglePosition=%d", currentTogglePosition))
+	util.WriteToFileDebug(fmt.Sprintf("Toggle arrowDown, currentTogglePosition=%d", currentTogglePosition))
 	return nil
 }
 
 func arrowUp(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
 	if currentTogglePosition < 2 {
 		currentTogglePosition += 1
 	}
-	util.WriteToFile(fmt.Sprintf("Toggle arrowUp, currentTogglePosition=%d", currentTogglePosition))
+	util.WriteToFileDebug(fmt.Sprintf("Toggle arrowUp, currentTogglePosition=%d", currentTogglePosition))
 	return nil
 }
 
 func enterToggle(g *gocui.Gui, v *gocui.View) error {
-	util.WriteToFile(fmt.Sprintf("Enter key pressed, currentSelection: %d", currentTogglePosition))
+	_ = v // get rid of compiler warning
+	util.WriteToFileDebug(fmt.Sprintf("Enter key pressed, currentSelection: %d", currentTogglePosition))
 	_ = g.DeleteView("ToggleView")
 	switch currentTogglePosition {
 	case 0:

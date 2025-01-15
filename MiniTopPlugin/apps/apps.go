@@ -130,6 +130,7 @@ func showFilterView(g *gocui.Gui, v *gocui.View) error {
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
+	util.WriteToFileDebug("resetFilters AppView")
 	common.FilterStrings[common.FilterFieldAppName] = ""
 	common.FilterStrings[common.FilterFieldOrg] = ""
 	common.FilterStrings[common.FilterFieldSpace] = ""
@@ -222,10 +223,10 @@ func refreshViewContent(gui *gocui.Gui) {
 		lineCounter := 0
 		if common.ActiveView == common.AppInstanceView {
 			mainView.Title = "Application Instances"
-			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %6s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", common.ColorYellow, "APP/INDEX", "LASTSEEN", "AGE", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "IP", "LOG_REP", "LOG_RTR", "ORG", "SPACE", common.ColorReset))
+			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %8s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", common.ColorYellow, "App/Index", "LastSeen", "UpTime", "Cpu%", "CpuTot", "MemUsed", "MemQuota", "DiskUsed", "LogRt", "LogRtLim", "CpuEnt", "IP", "LogRep", "LogRtr", "Org", "Space", common.ColorReset))
 			for _, pairlist := range sortedBy(InstanceMetricMap, common.ActiveSortDirection, activeInstancesSortField) {
 				if passFilter(pairlist) {
-					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%6s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%8s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
 						appNameColor, fmt.Sprintf("%s/%s(%d)", util.TruncateString(pairlist.Value.AppName, 45), pairlist.Value.AppIndex, AppInstanceCounters[pairlist.Value.AppGuid].Count), common.ColorReset,
 						common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 						common.AgeColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[metricAge]), common.ColorReset,
@@ -253,10 +254,10 @@ func refreshViewContent(gui *gocui.Gui) {
 
 		if common.ActiveView == common.AppView {
 			mainView.Title = "Applications"
-			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %5s %5s %9s %8s %7s %8s %-25s %-35s%s\n", common.ColorYellow, "APP", "LASTSEEN", "IX", "CPU%", "CPUTOT", "MEMORY", "MEM_QUOTA", "DISK", "LOGRT", "LOGRT_LIM", "CPU_ENT", "LOG_REP", "LOG_RTR", "ORG", "SPACE", common.ColorReset))
+			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %3s %4s %7s %8s %9s %8s %5s %9s %8s %7s %8s %-25s %-35s%s\n", common.ColorYellow, "App", "LastSeen", "Ix", "Cpu%", "CpuTot", "MemUsed", "MemQuota", "DiskUsed", "LogRt", "LogRtLim", "CpuEnt", "LogRep", "LogRtr", "Org", "Space", common.ColorReset))
 			for _, pairlist := range sortedBy(AppMetricMap, common.ActiveSortDirection, activeAppsSortField) {
 				if passFilter(pairlist) {
-					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%3d%s %s%4s%s %s%7s%s %s%8s%s %s%9s%s %s%5s%s %s%5s%s %s%9s%s %s%8s%s %s%7s%s %s%8s%s %s%-25s%s %s%-35s%s\n",
+					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%3d%s %s%4s%s %s%7s%s %s%8s%s %s%9s%s %s%8s%s %s%5s%s %s%9s%s %s%8s%s %s%7s%s %s%8s%s %s%-25s%s %s%-35s%s\n",
 						appNameColor, fmt.Sprintf("%s", util.TruncateString(pairlist.Value.AppName, 45)), common.ColorReset,
 						common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 						ixColor, pairlist.Value.IxCount, common.ColorReset,

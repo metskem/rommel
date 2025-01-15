@@ -39,20 +39,20 @@ var (
 	metricCapacityAllocatedMemory = "CapacityAllocatedMemory"
 	metricIPTablesRuleCount       = "IPTablesRuleCount"
 	//metricNetInterfaceCount       = "NetInterfaceCount"
-	metricOverlayTxBytes     = "OverlayTxBytes"
-	metricOverlayRxBytes     = "OverlayRxBytes"
-	metricOverlayRxDropped   = "OverlayRxDropped"
-	metricOverlayTxDropped   = "OverlayTxDropped"
-	metricHTTPRouteCount     = "HTTPRouteCount"
-	metricDopplerConnections = "doppler_connections"
-	metricActiveDrains       = "active_drains"
-	metricNumCPUS            = "numCPUS"
-	metricResponses          = "responses"
-	metric2xx                = "responses.2xx"
-	metric3xx                = "responses.3xx"
-	metric4xx                = "responses.4xx"
-	metric5xx                = "responses.5xx"
-	MetricNames              = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
+	metricOverlayTxBytes   = "OverlayTxBytes"
+	metricOverlayRxBytes   = "OverlayRxBytes"
+	metricOverlayRxDropped = "OverlayRxDropped"
+	metricOverlayTxDropped = "OverlayTxDropped"
+	metricHTTPRouteCount   = "HTTPRouteCount"
+	//metricDopplerConnections = "doppler_connections"
+	//metricActiveDrains       = "active_drains"
+	metricNumCPUS   = "numCPUS"
+	metricResponses = "responses"
+	metric2xx       = "responses.2xx"
+	metric3xx       = "responses.3xx"
+	metric4xx       = "responses.4xx"
+	metric5xx       = "responses.5xx"
+	MetricNames     = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -98,7 +98,7 @@ func showFilterView(g *gocui.Gui, v *gocui.View) error {
 }
 
 func resetFilters(g *gocui.Gui, v *gocui.View) error {
-	util.WriteToFile("resetFilters VMView")
+	util.WriteToFileDebug("resetFilters VMView")
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
 	common.FilterStrings[common.FilterFieldIP] = ""

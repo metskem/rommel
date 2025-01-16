@@ -19,9 +19,10 @@ type CellMetric struct {
 }
 
 const (
-	TagIP  = "ip"
-	TagIx  = "index"
-	TagJob = "job"
+	TagIP     = "ip"
+	TagIx     = "index"
+	TagJob    = "job"
+	TagOrigin = "origin"
 )
 
 var (
@@ -44,6 +45,9 @@ var (
 	metricOverlayRxDropped = "OverlayRxDropped"
 	metricOverlayTxDropped = "OverlayTxDropped"
 	metricHTTPRouteCount   = "HTTPRouteCount"
+	metricAIELRL           = "AppInstanceExceededLogRateLimitCount"
+	metricNzlEgr           = "nozzle_egress"
+	metricNzlIngr          = "nozzle_ingress"
 	//metricDopplerConnections = "doppler_connections"
 	//metricActiveDrains       = "active_drains"
 	metricNumCPUS   = "numCPUS"
@@ -52,7 +56,7 @@ var (
 	metric3xx       = "responses.3xx"
 	metric4xx       = "responses.4xx"
 	metric5xx       = "responses.5xx"
-	MetricNames     = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx}
+	MetricNames     = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx, metricAIELRL, metricNzlIngr, metricNzlEgr}
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -60,6 +64,7 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, showFilterView)
+	_ = gui.SetKeybinding("VMView", 'C', gocui.ModNone, resetCounters)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -88,6 +93,7 @@ func ShowView(gui *gocui.Gui) {
 		return nil
 	})
 }
+
 func showFilterView(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
@@ -102,6 +108,17 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
 	common.FilterStrings[common.FilterFieldIP] = ""
+	return nil
+}
+
+func resetCounters(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFileDebug("resetCounters VMView")
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	common.MapLock.Lock()
+	defer common.MapLock.Unlock()
+	CellMetricMap = make(map[string]CellMetric)
+	common.ResetCounters()
 	return nil
 }
 
@@ -144,13 +161,48 @@ func layout(g *gocui.Gui) (err error) {
 		}
 	}
 	if common.ShowHelp {
-		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15, byte(0)); err != nil {
+		if _, err = g.SetView("HelpView", maxX/2-40, 7, maxX/2+40, maxY-1, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}
 			v, _ := g.SetCurrentView("HelpView")
 			v.Title = "Help"
-			_, _ = fmt.Fprintln(v, "You can use the following keys:\nh or ? - show this help (<enter> to close)\nq - quit\nf - filter\nR - reset all filters\narrow keys (left/right) - sort\nspace - flip sort order\nt - toggle between app and instance view")
+			_, _ = fmt.Fprintln(v, "You can use the following keys:\n"+
+				"h or ? - show this help (<enter> to close)\n"+
+				"q - quit\n"+
+				"f - filter (only some columns)\n"+
+				"R - reset all filters\n"+
+				"C - reset all counters\n"+
+				"arrow keys (left/right) - sort\n"+
+				"space - flip sort order\n"+
+				"t - toggle between vm, app and instance view\n"+
+				" \n"+
+				"Columns:\n"+
+				"LASTSEEN - time since a metric was last seen\n"+
+				"Job - the BOSH job name\n"+
+				"IP - the IP address of the VM (where the app instance runs)\n"+
+				"UpTime - the time the VM is up\n"+
+				"NumCPU - the number of CPUs\n"+
+				"MemTot - the total memory reported (includes optional overcommit)\n"+
+				"MemAlloc - the memory requested by apps\n"+
+				"MemUsd - the memory used by apps\n"+
+				"DiskTot - the total disk space reported (includes optional overcommit)\n"+
+				"DiskUsd - the disk space used by apps\n"+
+				"CntrCnt - the number of running app containers\n"+
+				"IPTR - the number of iptables rules\n"+
+				"OVTX - the overlay network transmitted bytes\n"+
+				"OVRX - the overlay network received bytes\n"+
+				"HTTPRC - the number of HTTP requests\n"+
+				"OVRXDrop - the number of dropped overlay network received bytes\n"+
+				"OVTXDrop - the number of dropped overlay network transmitted bytes\n"+
+				"TOT_REQ - the total number of HTTP requests\n"+
+				"2XX - the number of HTTP 2xx responses\n"+
+				"3XX - the number of HTTP 3xx responses\n"+
+				"4XX - the number of HTTP 4xx responses\n"+
+				"5XX - the number of HTTP 5xx responses\n"+
+				"AIELRL - the number of times an app instance exceeded the log rate limit\n"+
+				"NzlIngr - the number of bytes ingressed by the nozzle\n"+
+				"NzlEgr - the number of bytes egressed by the nozzle")
 		}
 	}
 	if common.ShowToggleView {
@@ -174,11 +226,11 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %s\n", common.ColorYellow,
-			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "TOT_REQ", "2XX", "3XX", "4XX", "5XX", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %7s %7s %7s %s\n", common.ColorYellow,
+			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "TOT_REQ", "2XX", "3XX", "4XX", "5XX", "AIELRL", "NzlIngr", "NzlEgr", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%7s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					JobColor, util.TruncateString(pairlist.Value.Job, 13), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
@@ -201,6 +253,9 @@ func refreshViewContent(gui *gocui.Gui) {
 					r3xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric3xx]), common.ColorReset,
 					r4xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric4xx]), common.ColorReset,
 					r5xxColor, util.GetFormattedUnit(pairlist.Value.Tags[metric5xx]), common.ColorReset,
+					AIELRLColor, util.GetFormattedUnit(pairlist.Value.Tags[metricAIELRL]), common.ColorReset,
+					NzlIngrColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNzlEgr]), common.ColorReset,
+					NzlEgrColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNzlEgr]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

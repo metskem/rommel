@@ -61,6 +61,15 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("FilterView", gocui.KeyEnter, gocui.ModNone, handleEnter)
 }
 
+func ResetCounters() {
+	TotalEnvelopes = 0
+	TotalEnvelopesPerSec = 0
+	TotalEnvelopesRep = 0
+	TotalEnvelopesRepPerSec = 0
+	TotalEnvelopesRtr = 0
+	TotalEnvelopesRtrPerSec = 0
+}
+
 func quit(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning

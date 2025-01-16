@@ -32,6 +32,9 @@ const (
 	sortBy3xx
 	sortBy4xx
 	sortBy5xx
+	sortByAIELRL
+	sortByNzlIngr
+	sortByNzlEgr
 )
 
 var (
@@ -55,8 +58,10 @@ var (
 	r3xxColor                              = common.ColorWhite
 	r4xxColor                              = common.ColorWhite
 	r5xxColor                              = common.ColorWhite
+	AIELRLColor                            = common.ColorWhite
+	NzlIngrColor                           = common.ColorWhite
+	NzlEgrColor                            = common.ColorWhite
 	activeSortField              SortField = sortByIP
-	activeSortFieldColor         SortField = sortByIP
 )
 
 func spacePressed(g *gocui.Gui, v *gocui.View) error {
@@ -90,6 +95,9 @@ func colorSortedColumn() {
 	r3xxColor = common.ColorWhite
 	r4xxColor = common.ColorWhite
 	r5xxColor = common.ColorWhite
+	AIELRLColor = common.ColorWhite
+	NzlIngrColor = common.ColorWhite
+	NzlEgrColor = common.ColorWhite
 	switch activeSortField {
 	case sortByLastSeen:
 		common.LastSeenColor = common.ColorBlue
@@ -135,6 +143,12 @@ func colorSortedColumn() {
 		r4xxColor = common.ColorBlue
 	case sortBy5xx:
 		r5xxColor = common.ColorBlue
+	case sortByAIELRL:
+		AIELRLColor = common.ColorBlue
+	case sortByNzlEgr:
+		NzlEgrColor = common.ColorBlue
+	case sortByNzlIngr:
+		NzlIngrColor = common.ColorBlue
 	}
 	util.WriteToFileDebug(fmt.Sprintf("colorSortedColumn VMs, activeSortField: %d", activeSortField))
 }
@@ -211,6 +225,12 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metric4xx] < p[j].Value.Tags[metric4xx]
 	case sortBy5xx:
 		return p[i].Value.Tags[metric5xx] < p[j].Value.Tags[metric5xx]
+	case sortByAIELRL:
+		return p[i].Value.Tags[metricAIELRL] < p[j].Value.Tags[metricAIELRL]
+	case sortByNzlEgr:
+		return p[i].Value.Tags[metricNzlEgr] < p[j].Value.Tags[metricNzlEgr]
+	case sortByNzlIngr:
+		return p[i].Value.Tags[metricNzlIngr] < p[j].Value.Tags[metricNzlIngr]
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }
@@ -242,7 +262,7 @@ func passFilter(pairList Pair) bool {
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortBy5xx {
+	if activeSortField != sortByNzlEgr {
 		activeSortField++
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowRight VMs, activeSortField: %d", activeSortField))

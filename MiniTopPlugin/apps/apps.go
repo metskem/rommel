@@ -69,6 +69,7 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("ApplicationView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("", gocui.KeySpace, gocui.ModNone, common.SpacePressed)
 	_ = gui.SetKeybinding("", 'f', gocui.ModNone, showFilterView)
+	_ = gui.SetKeybinding("ApplicationView", 'C', gocui.ModNone, resetCounters)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -137,6 +138,17 @@ func resetFilters(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func resetCounters(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFileDebug("resetCounters VMView")
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	InstanceMetricMap = make(map[string]AppOrInstanceMetric)
+	AppInstanceCounters = make(map[string]AppInstanceCounter)
+	TotalApps = make(map[string]bool)
+	common.ResetCounters()
+	return nil
+}
+
 func layout(g *gocui.Gui) (err error) {
 	if common.ActiveView != common.AppView && common.ActiveView != common.AppInstanceView {
 		return nil
@@ -179,13 +191,39 @@ func layout(g *gocui.Gui) (err error) {
 		}
 	}
 	if common.ShowHelp {
-		if _, err = g.SetView("HelpView", maxX/2-40, maxY/2-5, maxX/2+40, maxY/2+15, byte(0)); err != nil {
+		if _, err = g.SetView("HelpView", maxX/2-40, 7, maxX/2+40, maxY-1, byte(0)); err != nil {
 			if !errors.Is(err, gocui.ErrUnknownView) {
 				return err
 			}
 			v, _ := g.SetCurrentView("HelpView")
 			v.Title = "Help"
-			_, _ = fmt.Fprintln(v, "You can use the following keys:\nh or ? - show this help (<enter> to close)\nq - quit\nf - filter\nR - reset all filters\narrow keys (left/right) - sort\nspace - flip sort order\nt - toggle between app and instance view")
+			_, _ = fmt.Fprintln(v, "You can use the following keys:\n"+
+				"h or ? - show this help (<enter> to close)\n"+
+				"q - quit\n"+
+				"f - filter (only app, org and space columns)\n"+
+				"R - reset all filters\n"+
+				"C - reset all counters\n"+
+				"arrow keys (left/right) - sort\n"+
+				"space - flip sort order\n"+
+				"t - toggle between vm, app and instance view\n"+
+				" \n"+
+				"Columns:\n"+
+				"App/Index - the app name and index\n"+
+				"LASTSEEN - time since a metric was last seen\n"+
+				"UpTime - the time the App Instance is up\n"+
+				"Cpu% - the CPU percentage used\n"+
+				"CpuTot - the total CPU used (accumulated over time)\n"+
+				"MemUsd - the memory used by the app instance\n"+
+				"MemQuota - the memory quota for the app\n"+
+				"DiskUsd - the disk space used by the app instance\n"+
+				"LogRt - the log rate\n"+
+				"LogRtLim - the log rate limit\n"+
+				"CpuEnt - the CPU entitlement\n"+
+				"IP - the IP address of the VM where the app instance runs\n"+
+				"LogRep - the log output (APP/PROC/WEB) of the app (requires the -l option)\n"+
+				"LogRtr - the log output (RTR) of the app (requires the -l option)\n"+
+				"Org - the organization name\n"+
+				"Space - the space name")
 		}
 	}
 	if common.ShowToggleView {
@@ -223,10 +261,10 @@ func refreshViewContent(gui *gocui.Gui) {
 		lineCounter := 0
 		if common.ActiveView == common.AppInstanceView {
 			mainView.Title = "Application Instances"
-			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %7s %9s %8s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", common.ColorYellow, "App/Index", "LastSeen", "UpTime", "Cpu%", "CpuTot", "MemUsed", "MemQuota", "DiskUsed", "LogRt", "LogRtLim", "CpuEnt", "IP", "LogRep", "LogRtr", "Org", "Space", common.ColorReset))
+			_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%-47s %8s %12s %5s %9s %6s %9s %7s %6s %9s %7s %-14s %9s %9s %-25s %-35s%s\n", common.ColorYellow, "App/Index", "LastSeen", "UpTime", "Cpu%", "CpuTot", "MemUsd", "MemQuota", "DiskUsd", "LogRt", "LogRtLim", "CpuEnt", "IP", "LogRep", "LogRtr", "Org", "Space", common.ColorReset))
 			for _, pairlist := range sortedBy(InstanceMetricMap, common.ActiveSortDirection, activeInstancesSortField) {
 				if passFilter(pairlist) {
-					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%7s%s %s%9s%s %s%8s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
+					_, _ = fmt.Fprintf(mainView, "%s%-50s%s %s%5s%s %s%12s%s %s%5s%s %s%9s%s %s%6s%s %s%9s%s %s%7s%s %s%6s%s %s%9s%s %s%7s%s %s%-14s%s %s%9s%s %s%9s%s %s%-25s%s %s%-35s%s\n",
 						appNameColor, fmt.Sprintf("%s/%s(%d)", util.TruncateString(pairlist.Value.AppName, 45), pairlist.Value.AppIndex, AppInstanceCounters[pairlist.Value.AppGuid].Count), common.ColorReset,
 						common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 						common.AgeColor, util.GetFormattedElapsedTime(pairlist.Value.Tags[metricAge]), common.ColorReset,

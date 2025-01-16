@@ -80,6 +80,8 @@ func startMT(cliConnection plugin.CliConnection) {
 		envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
 
+	countersMap := make(map[string]string)
+
 	go func() {
 		for {
 			for _, envelope := range envelopeStream() {
@@ -175,6 +177,10 @@ func startMT(cliConnection plugin.CliConnection) {
 				}
 				// type counter metrics
 				if counter := envelope.GetCounter(); counter != nil {
+					if _, ok := countersMap[counter.Name]; !ok {
+						countersMap[counter.Name] = counter.Name
+						util.WriteToFile(fmt.Sprintf("%s: %d/%d [%s, %s, %s, %s]", counter.Name, counter.Delta, counter.Total, envelope.Tags[vms.TagOrigin], envelope.Tags[vms.TagJob], envelope.Tags[vms.TagIP], envelope.Tags[apps.TagAppName]))
+					}
 					key = envelope.Tags[vms.TagIP]
 					if envelope.Tags[vms.TagIP] != "" {
 						// if key not in metricMap, add it
@@ -186,6 +192,10 @@ func startMT(cliConnection plugin.CliConnection) {
 						for _, metricName := range vms.MetricNames {
 							if counter.Name == metricName {
 								metricValues.Tags[metricName] = metricValues.Tags[metricName] + float64(counter.Delta)
+								if metricValues.Tags[metricName] == 0 {
+									// it might be that this counter only has Total, not Delta
+									metricValues.Tags[metricName] = float64(counter.Total)
+								}
 							}
 						}
 						metricValues.IP = envelope.Tags[vms.TagIP]

@@ -212,7 +212,7 @@ func startMT(cliConnection plugin.CliConnection) {
 							key = Url.Host
 							routeMetric, ok := routes.RouteMetricMap[key]
 							if !ok {
-								routeMetric = routes.RouteMetric{Host: key}
+								routeMetric = routes.RouteMetric{Route: key}
 							}
 							routeMetric.LastSeen = time.Now()
 							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "2") {
@@ -240,7 +240,7 @@ func startMT(cliConnection plugin.CliConnection) {
 								routeMetric.DELETEs++
 							}
 							routeMetric.RTotal++
-							routeMetric.TotalRespTime = routeMetric.TotalRespTime + timer.Stop - timer.Start
+							routeMetric.TotalRespTime = routeMetric.TotalRespTime + float64(timer.Stop) - float64(timer.Start)
 							routes.RouteMetricMap[key] = routeMetric
 							//util.WriteToFile(fmt.Sprintf("%s: %s %d %d %d %d %d", envelope.Tags["job"], key, len(routes.RouteMetricMap), routes.RouteMetricMap[key].R2xx, routes.RouteMetricMap[key].R4xx, routes.RouteMetricMap[key].POSTs, routes.RouteMetricMap[key].TotalRespTime))
 							routes.RouteMetricMap[key] = routeMetric
@@ -321,6 +321,14 @@ func startCui() {
 						common.ViewToggled = false
 					}
 					vms.ShowView(gui)
+				} else {
+					routes.SetKeyBindings(gui)
+					common.SetKeyBindings(gui)
+					if common.ViewToggled {
+						gui.SetManager(routes.NewRouteView())
+						common.ViewToggled = false
+					}
+					routes.ShowView(gui)
 				}
 			}
 			time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)

@@ -18,10 +18,8 @@ type CellMetric struct {
 }
 
 const (
-	TagIP     = "ip"
-	TagIx     = "index"
-	TagJob    = "job"
-	TagOrigin = "origin"
+	TagIP  = "ip"
+	TagJob = "job"
 )
 
 var (

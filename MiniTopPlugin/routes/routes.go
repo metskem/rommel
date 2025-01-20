@@ -1,23 +1,28 @@
 package routes
 
 import (
+	"errors"
+	"fmt"
 	"github.com/awesome-gocui/gocui"
+	"github.com/metskem/rommel/MiniTopPlugin/common"
+	"github.com/metskem/rommel/MiniTopPlugin/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"time"
 )
 
 type RouteMetric struct {
 	LastSeen      time.Time
-	Host          string
-	RTotal        int
-	R2xx          int
-	R3xx          int
-	R4xx          int
-	R5xx          int
-	GETs          int
-	POSTs         int
-	PUTs          int
-	DELETEs       int
-	TotalRespTime int64
+	Route         string
+	RTotal        float64
+	R2xx          float64
+	R3xx          float64
+	R4xx          float64
+	R5xx          float64
+	GETs          float64
+	POSTs         float64
+	PUTs          float64
+	DELETEs       float64
+	TotalRespTime float64
 }
 
 const (
@@ -31,3 +36,134 @@ var (
 	summaryView    *gocui.View
 	RouteMetricMap = make(map[string]RouteMetric) // map key is app-guid
 )
+
+type RouteView struct {
+}
+
+func NewRouteView() *RouteView {
+	return &RouteView{}
+}
+
+func (a *RouteView) Layout(g *gocui.Gui) error {
+	return layout(g)
+}
+
+func ShowView(gui *gocui.Gui) {
+	util.WriteToFileDebug("ShowView RouteView")
+	colorSortedColumn()
+
+	gui.Update(func(g *gocui.Gui) error {
+		refreshViewContent(g)
+		return nil
+	})
+}
+
+func SetKeyBindings(gui *gocui.Gui) {
+	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
+	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
+	//_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
+	//_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, showFilterView)
+	//_ = gui.SetKeybinding("VMView", 'C', gocui.ModNone, resetCounters)
+	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	//_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
+	//for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
+	//	_ = gui.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
+	//}
+}
+
+func layout(g *gocui.Gui) (err error) {
+	util.WriteToFileDebug("layout RouteView")
+	if common.ActiveView != common.RouteView {
+		return nil
+	}
+	maxX, maxY := g.Size()
+	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4, byte(0)); err != nil {
+		if !errors.Is(err, gocui.ErrUnknownView) {
+			return err
+		}
+		v, _ := g.SetCurrentView("SummaryView")
+		v.Title = "Summary"
+	}
+	if mainView, err = g.SetView("RouteView", 0, 5, maxX-1, maxY-1, byte(0)); err != nil {
+		if !errors.Is(err, gocui.ErrUnknownView) {
+			return err
+		}
+		v, _ := g.SetCurrentView("RouteView")
+		v.Title = "Routes"
+	}
+	if common.ShowFilter {
+		if _, err = g.SetView("FilterView", maxX/2-30, maxY/2, maxX/2+30, maxY/2+10, byte(0)); err != nil {
+			if !errors.Is(err, gocui.ErrUnknownView) {
+				return err
+			}
+			v, _ := g.SetCurrentView("FilterView")
+			v.Title = "Filter"
+			_, _ = fmt.Fprint(v, "Filter by (regular expression)")
+			if activeSortField == sortByRoute {
+				_, _ = fmt.Fprintln(v, " IP")
+				_, _ = fmt.Fprintln(v, common.FilterStrings[common.FilterFieldRoute])
+			}
+		}
+	}
+	if common.ShowHelp {
+		if _, err = g.SetView("HelpView", maxX/2-40, 7, maxX/2+40, maxY-1, byte(0)); err != nil {
+			if !errors.Is(err, gocui.ErrUnknownView) {
+				return err
+			}
+			v, _ := g.SetCurrentView("HelpView")
+			v.Title = "Help"
+			_, _ = fmt.Fprintln(v, "You can use the following keys:\n"+
+				"h or ? - show this help (<enter> to close)\n"+
+				"q - quit\n"+
+				"f - filter (only some columns)\n"+
+				"R - reset all filters\n"+
+				"C - reset all counters\n"+
+				"arrow keys (left/right) - sort\n"+
+				"space - flip sort order\n"+
+				"t - toggle between vm, app and instance view\n"+
+				" \n"+
+				"Columns:\n"+
+				"LASTSEEN - time since a metric was last seen\n"+
+				"Route - the cf Route")
+		}
+	}
+	if common.ShowToggleView {
+		_ = common.ShowToggleViewLayout(g)
+	}
+	return nil
+}
+
+func refreshViewContent(gui *gocui.Gui) {
+	util.WriteToFileDebug("refreshViewContent RouteView")
+	_, maxY := gui.Size()
+
+	if summaryView != nil {
+		summaryView.Clear()
+		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n",
+			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9))
+	}
+	if mainView != nil {
+		mainView.Clear()
+		common.MapLock.Lock()
+		defer common.MapLock.Unlock()
+		lineCounter := 0
+		mainView.Title = "VMs"
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %5s  %s\n", common.ColorYellow,
+			"LASTSEEN", "Route", "2xx", common.ColorReset))
+		for _, pairlist := range sortedBy(RouteMetricMap, common.ActiveSortDirection, activeSortField) {
+			if passFilter(pairlist) {
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-60s%s %s%5s%s\n",
+					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
+					routeColor, util.TruncateString(pairlist.Value.Route, 60), common.ColorReset,
+					r2xxColor, util.GetFormattedUnit(pairlist.Value.R2xx), common.ColorReset,
+				)
+				lineCounter++
+				if lineCounter > maxY-7 {
+					//	don't render lines that don't fit on the screen
+					break
+				}
+			}
+		}
+	}
+}

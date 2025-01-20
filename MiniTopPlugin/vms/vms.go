@@ -12,7 +12,6 @@ import (
 
 type CellMetric struct {
 	LastSeen time.Time
-	Index    string
 	Job      string
 	IP       string
 	Tags     map[string]float64

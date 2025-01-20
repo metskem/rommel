@@ -13,9 +13,11 @@ import (
 	"github.com/metskem/rommel/MiniTopPlugin/apps"
 	"github.com/metskem/rommel/MiniTopPlugin/common"
 	"github.com/metskem/rommel/MiniTopPlugin/conf"
+	"github.com/metskem/rommel/MiniTopPlugin/routes"
 	"github.com/metskem/rommel/MiniTopPlugin/util"
 	"github.com/metskem/rommel/MiniTopPlugin/vms"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -27,19 +29,18 @@ var (
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
-		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}},  // timer events are only http request timings
+		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
 		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
 	gaugeSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		//{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
-		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}},  // timer events are only http request timings
+		{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
 		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
 	useRepRtrLogging bool
 	gui              *gocui.Gui
-	streamErrored    = false
 )
 
 func startMT(cliConnection plugin.CliConnection) {
@@ -79,8 +80,6 @@ func startMT(cliConnection plugin.CliConnection) {
 	} else {
 		envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
 	}
-
-	countersMap := make(map[string]string)
 
 	go func() {
 		for {
@@ -169,7 +168,6 @@ func startMT(cliConnection plugin.CliConnection) {
 							}
 							metricValues.IP = envelope.Tags[vms.TagIP]
 							metricValues.Job = envelope.Tags[vms.TagJob]
-							metricValues.Index = envelope.Tags[vms.TagIx]
 							metricValues.LastSeen = time.Now()
 							vms.CellMetricMap[key] = metricValues
 						}
@@ -177,10 +175,10 @@ func startMT(cliConnection plugin.CliConnection) {
 				}
 				// type counter metrics
 				if counter := envelope.GetCounter(); counter != nil {
-					if _, ok := countersMap[counter.Name]; !ok {
-						countersMap[counter.Name] = counter.Name
-						util.WriteToFile(fmt.Sprintf("%s: %d/%d [%s, %s, %s, %s]", counter.Name, counter.Delta, counter.Total, envelope.Tags[vms.TagOrigin], envelope.Tags[vms.TagJob], envelope.Tags[vms.TagIP], envelope.Tags[apps.TagAppName]))
-					}
+					//if _, ok := countersMap[counter.Name]; !ok {
+					//	countersMap[counter.Name] = counter.Name
+					//	util.WriteToFile(fmt.Sprintf("%s: %d/%d [%s, %s, %s, %s]", counter.Name, counter.Delta, counter.Total, envelope.Tags[vms.TagOrigin], envelope.Tags[vms.TagJob], envelope.Tags[vms.TagIP], envelope.Tags[apps.TagAppName]))
+					//}
 					key = envelope.Tags[vms.TagIP]
 					if envelope.Tags[vms.TagIP] != "" {
 						// if key not in metricMap, add it
@@ -200,9 +198,53 @@ func startMT(cliConnection plugin.CliConnection) {
 						}
 						metricValues.IP = envelope.Tags[vms.TagIP]
 						metricValues.Job = envelope.Tags[vms.TagJob]
-						metricValues.Index = envelope.Tags[vms.TagIx]
 						metricValues.LastSeen = time.Now()
 						vms.CellMetricMap[key] = metricValues
+					}
+				}
+				// type counter metrics
+				//
+				//  a new URI view, showing uri (or just hostname), with req count, by status code
+				//  a new remoteClient view, showing remote client IP, with req count, by status code
+				if timer := envelope.GetTimer(); timer != nil && timer.Name == "http" {
+					if envelope.Tags[routes.TagUri] != "" {
+						if Url, err := url.Parse(envelope.Tags[routes.TagUri]); err == nil {
+							key = Url.Host
+							routeMetric, ok := routes.RouteMetricMap[key]
+							if !ok {
+								routeMetric = routes.RouteMetric{Host: key}
+							}
+							routeMetric.LastSeen = time.Now()
+							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "2") {
+								routeMetric.R2xx++
+							}
+							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "3") {
+								routeMetric.R3xx++
+							}
+							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "4") {
+								routeMetric.R4xx++
+							}
+							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "5") {
+								routeMetric.R5xx++
+							}
+							if envelope.Tags[routes.TagMethod] == "GET" {
+								routeMetric.GETs++
+							}
+							if envelope.Tags[routes.TagMethod] == "PUT" {
+								routeMetric.PUTs++
+							}
+							if envelope.Tags[routes.TagMethod] == "POST" {
+								routeMetric.POSTs++
+							}
+							if envelope.Tags[routes.TagMethod] == "DELETE" {
+								routeMetric.DELETEs++
+							}
+							routeMetric.RTotal++
+							routeMetric.TotalRespTime = routeMetric.TotalRespTime + timer.Stop - timer.Start
+							routes.RouteMetricMap[key] = routeMetric
+							//util.WriteToFile(fmt.Sprintf("%s: %s %d %d %d %d %d", envelope.Tags["job"], key, len(routes.RouteMetricMap), routes.RouteMetricMap[key].R2xx, routes.RouteMetricMap[key].R4xx, routes.RouteMetricMap[key].POSTs, routes.RouteMetricMap[key].TotalRespTime))
+							routes.RouteMetricMap[key] = routeMetric
+						}
 					}
 				}
 				common.MapLock.Unlock()
@@ -261,7 +303,7 @@ func startCui() {
 	go func() {
 		util.WriteToFileDebug("starting main UI refresh loop")
 		gui.SetManager(vms.NewVMView()) // we startup with the VMView
-		for streamErrored == false {
+		for {
 			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
 				apps.SetKeyBindings(gui)
 				common.SetKeyBindings(gui)

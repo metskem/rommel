@@ -88,19 +88,10 @@ func SpacePressed(g *gocui.Gui, v *gocui.View) error {
 }
 
 func FlipSortOrder() {
-	if ActiveView == AppView || ActiveView == AppInstanceView {
-		if ActiveSortDirection == true {
-			ActiveSortDirection = false
-		} else {
-			ActiveSortDirection = true
-		}
-	}
-	if ActiveView == VMView {
-		if ActiveSortDirection == true {
-			ActiveSortDirection = false
-		} else {
-			ActiveSortDirection = true
-		}
+	if ActiveSortDirection == true {
+		ActiveSortDirection = false
+	} else {
+		ActiveSortDirection = true
 	}
 }
 

@@ -59,9 +59,9 @@ func ShowView(gui *gocui.Gui) {
 }
 
 func SetKeyBindings(gui *gocui.Gui) {
-	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
-	//_ = gui.SetKeybinding("VMView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
-	//_ = gui.SetKeybinding("VMView", gocui.KeySpace, gocui.ModNone, spacePressed)
+	_ = gui.SetKeybinding("RouteView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
+	_ = gui.SetKeybinding("RouteView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
+	_ = gui.SetKeybinding("RouteView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	//_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, showFilterView)
 	//_ = gui.SetKeybinding("VMView", 'C', gocui.ModNone, resetCounters)
 	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
@@ -149,14 +149,22 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %5s  %s\n", common.ColorYellow,
-			"LASTSEEN", "Route", "2xx", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %7s %5s %5s %5s %5s %5s %5s %5s %7s  %s\n", common.ColorYellow,
+			"LASTSEEN", "Route", "Req Tot", "2xx", "3xx", "4xx", "5xx", "GETs", "PUTs", "POSTs", "DELETEs", common.ColorReset))
 		for _, pairlist := range sortedBy(RouteMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-60s%s %s%5s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-60s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%7s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					routeColor, util.TruncateString(pairlist.Value.Route, 60), common.ColorReset,
+					rTotColor, util.GetFormattedUnit(pairlist.Value.RTotal), common.ColorReset,
 					r2xxColor, util.GetFormattedUnit(pairlist.Value.R2xx), common.ColorReset,
+					r3xxColor, util.GetFormattedUnit(pairlist.Value.R3xx), common.ColorReset,
+					r4xxColor, util.GetFormattedUnit(pairlist.Value.R4xx), common.ColorReset,
+					r5xxColor, util.GetFormattedUnit(pairlist.Value.R5xx), common.ColorReset,
+					GETsColor, util.GetFormattedUnit(pairlist.Value.GETs), common.ColorReset,
+					PUTsColor, util.GetFormattedUnit(pairlist.Value.PUTs), common.ColorReset,
+					POSTsColor, util.GetFormattedUnit(pairlist.Value.POSTs), common.ColorReset,
+					DELETEsColor, util.GetFormattedUnit(pairlist.Value.DELETEs), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {

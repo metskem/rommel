@@ -25,29 +25,48 @@ import (
 )
 
 var (
-	allSelectors = []*loggregator_v2.Selector{
+	baseSelectors = []*loggregator_v2.Selector{
+		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
+		//{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
+		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
+		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
+		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
+	}
+	logSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
 		//{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
 		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
-	gaugeSelectors = []*loggregator_v2.Selector{
+
+	timerSelectors = []*loggregator_v2.Selector{
 		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
 		//{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
 		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
 		{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
 		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
 	}
+
+	logAndTimerSelectors = []*loggregator_v2.Selector{
+		{Message: &loggregator_v2.Selector_Gauge{Gauge: &loggregator_v2.GaugeSelector{}}},
+		{Message: &loggregator_v2.Selector_Log{Log: &loggregator_v2.LogSelector{}}},
+		{Message: &loggregator_v2.Selector_Counter{Counter: &loggregator_v2.CounterSelector{}}},
+		{Message: &loggregator_v2.Selector_Timer{Timer: &loggregator_v2.TimerSelector{}}}, // timer events are only http request timings
+		//{Message: &loggregator_v2.Selector_Event{Event: &loggregator_v2.EventSelector{}}}, // produces nothing
+	}
+
 	useRepRtrLogging bool
+	useRouteEvents   bool
 	gui              *gocui.Gui
 )
 
 func startMT(cliConnection plugin.CliConnection) {
 	flaggy.DefaultParser.ShowHelpOnUnexpected = false
 	flaggy.DefaultParser.ShowVersionWithVersionFlag = false
-	flaggy.Bool(&useRepRtrLogging, "l", "includelogs", "Include logs from REP and RTR (more CPU overhead)")
-	flaggy.Bool(&conf.UseDebugging, "d", "debug", "Turn debugging on/off")
+	flaggy.Bool(&useRepRtrLogging, "l", "includeAppLogs", "Include logs from REP and RTR (more CPU overhead)")
+	flaggy.Bool(&useRouteEvents, "r", "includeRouteEvents", "Include timer events (http start/stop) (more CPU overhead)")
+	flaggy.Bool(&conf.UseDebugging, "d", "debug", "Run with debugging on/off")
 	flaggy.Parse()
 	if !conf.EnvironmentComplete(cliConnection) {
 		os.Exit(8)
@@ -75,10 +94,18 @@ func startMT(cliConnection plugin.CliConnection) {
 	)
 
 	var envelopeStream loggregator.EnvelopeStream
-	if useRepRtrLogging {
-		envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: allSelectors})
+	if useRepRtrLogging && useRouteEvents {
+		envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: logAndTimerSelectors})
 	} else {
-		envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: gaugeSelectors})
+		if useRepRtrLogging && !useRouteEvents {
+			envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: logSelectors})
+		} else {
+			if !useRepRtrLogging && useRouteEvents {
+				envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: timerSelectors})
+			} else {
+				envelopeStream = rlpGatewayClient.Stream(rlpCtx, &loggregator_v2.EgressBatchRequest{ShardId: conf.ShardId, Selectors: baseSelectors})
+			}
+		}
 	}
 
 	go func() {

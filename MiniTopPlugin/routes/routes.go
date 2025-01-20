@@ -63,7 +63,7 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("RouteView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("RouteView", gocui.KeySpace, gocui.ModNone, spacePressed)
 	_ = gui.SetKeybinding("RouteView", 'f', gocui.ModNone, showFilterView)
-	//_ = gui.SetKeybinding("RouteView", 'C', gocui.ModNone, resetCounters)
+	_ = gui.SetKeybinding("RouteView", 'C', gocui.ModNone, resetCounters)
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
 	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
@@ -182,6 +182,17 @@ func showFilterView(g *gocui.Gui, v *gocui.View) error {
 	if activeSortField == sortByRoute {
 		common.ShowFilter = true
 	}
+	return nil
+}
+
+func resetCounters(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFileDebug("resetCounters VMView")
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	common.MapLock.Lock()
+	defer common.MapLock.Unlock()
+	RouteMetricMap = make(map[string]RouteMetric)
+	common.ResetCounters()
 	return nil
 }
 

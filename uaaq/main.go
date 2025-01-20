@@ -47,14 +47,14 @@ func main() {
 
 	// switch between the set for DEV and the set for PRD
 
-	//allApis["d04"] = apiD04
-	//allApis["d05"] = apiD05
-	//allApis["d06"] = apiD06
+	allApis["d04"] = apiD04
+	allApis["d05"] = apiD05
+	allApis["d06"] = apiD06
 
-	allApis["p05"] = apiP05
-	allApis["p06"] = apiP06
-	allApis["p07"] = apiP07
-	allApis["p08"] = apiP08
+	//allApis["p05"] = apiP05
+	//allApis["p06"] = apiP06
+	//allApis["p07"] = apiP07
+	//allApis["p08"] = apiP08
 
 	mostRecentUsedUsers := make(map[string]uaa.User)
 	for ix, api := range allApis {

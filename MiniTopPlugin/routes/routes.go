@@ -62,14 +62,14 @@ func SetKeyBindings(gui *gocui.Gui) {
 	_ = gui.SetKeybinding("RouteView", gocui.KeyArrowRight, gocui.ModNone, arrowRight)
 	_ = gui.SetKeybinding("RouteView", gocui.KeyArrowLeft, gocui.ModNone, arrowLeft)
 	_ = gui.SetKeybinding("RouteView", gocui.KeySpace, gocui.ModNone, spacePressed)
-	//_ = gui.SetKeybinding("VMView", 'f', gocui.ModNone, showFilterView)
-	//_ = gui.SetKeybinding("VMView", 'C', gocui.ModNone, resetCounters)
-	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
-	//_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
-	//_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
-	//for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
-	//	_ = gui.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
-	//}
+	_ = gui.SetKeybinding("RouteView", 'f', gocui.ModNone, showFilterView)
+	//_ = gui.SetKeybinding("RouteView", 'C', gocui.ModNone, resetCounters)
+	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = gui.SetKeybinding("FilterView", gocui.KeyBackspace2, gocui.ModNone, mkEvtHandler(rune(gocui.KeyBackspace)))
+	_ = gui.SetKeybinding("", 'R', gocui.ModNone, resetFilters)
+	for _, c := range "\\/[]*?.-@#$%^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" {
+		_ = gui.SetKeybinding("FilterView", c, gocui.ModNone, mkEvtHandler(c))
+	}
 }
 
 func layout(g *gocui.Gui) (err error) {
@@ -148,7 +148,7 @@ func refreshViewContent(gui *gocui.Gui) {
 		common.MapLock.Lock()
 		defer common.MapLock.Unlock()
 		lineCounter := 0
-		mainView.Title = "VMs"
+		mainView.Title = "Routes"
 		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %7s %5s %5s %5s %5s %5s %5s %5s %7s  %s\n", common.ColorYellow,
 			"LASTSEEN", "Route", "Req Tot", "2xx", "3xx", "4xx", "5xx", "GETs", "PUTs", "POSTs", "DELETEs", common.ColorReset))
 		for _, pairlist := range sortedBy(RouteMetricMap, common.ActiveSortDirection, activeSortField) {
@@ -173,5 +173,41 @@ func refreshViewContent(gui *gocui.Gui) {
 				}
 			}
 		}
+	}
+}
+
+func showFilterView(g *gocui.Gui, v *gocui.View) error {
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	if activeSortField == sortByRoute {
+		common.ShowFilter = true
+	}
+	return nil
+}
+
+func resetFilters(g *gocui.Gui, v *gocui.View) error {
+	util.WriteToFileDebug("resetFilters RouteView")
+	_ = g // get rid of compiler warning
+	_ = v // get rid of compiler warning
+	common.FilterStrings[common.FilterFieldRoute] = ""
+	return nil
+}
+
+func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if activeSortField == sortByRoute {
+			if ch == rune(gocui.KeyBackspace) {
+				if len(common.FilterStrings[common.FilterFieldRoute]) > 0 {
+					common.FilterStrings[common.FilterFieldRoute] = common.FilterStrings[common.FilterFieldRoute][:len(common.FilterStrings[common.FilterFieldRoute])-1]
+					_ = v.SetCursor(len(common.FilterStrings[common.FilterFieldRoute])+1, 1)
+					v.EditDelete(true)
+				}
+				return nil
+			} else {
+				_, _ = fmt.Fprint(v, string(ch))
+				common.FilterStrings[common.FilterFieldRoute] = common.FilterStrings[common.FilterFieldRoute] + string(ch)
+			}
+		}
+		return nil
 	}
 }

@@ -94,8 +94,8 @@ func (p PairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func passFilter(pairList Pair) bool {
 	filterPassed := true
-	filterRegex := regexp.MustCompile(common.FilterStrings[common.FilterFieldIP])
-	if !(common.FilterStrings[common.FilterFieldHost] == "") && !filterRegex.MatchString(pairList.Value.Route) {
+	filterRegex := regexp.MustCompile(common.FilterStrings[common.FilterFieldRoute])
+	if !(common.FilterStrings[common.FilterFieldRoute] == "") && !filterRegex.MatchString(pairList.Value.Route) {
 		filterPassed = false
 	}
 	return filterPassed

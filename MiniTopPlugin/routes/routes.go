@@ -35,6 +35,11 @@ var (
 	mainView       *gocui.View
 	summaryView    *gocui.View
 	RouteMetricMap = make(map[string]RouteMetric) // map key is app-guid
+	Total5xx       float64
+	Total2xx       float64
+	Total3xx       float64
+	Total4xx       float64
+	TotalReqs      float64
 )
 
 type RouteView struct {
@@ -78,7 +83,7 @@ func layout(g *gocui.Gui) (err error) {
 		return nil
 	}
 	maxX, maxY := g.Size()
-	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 4, byte(0)); err != nil {
+	if summaryView, err = g.SetView("SummaryView", 0, 0, maxX-1, 3, byte(0)); err != nil {
 		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
@@ -125,7 +130,18 @@ func layout(g *gocui.Gui) (err error) {
 				" \n"+
 				"Columns:\n"+
 				"LASTSEEN - time since a metric was last seen\n"+
-				"Route - the cf Route")
+				"Route - the cf Route\n"+
+				"Req Tot - total number of requests\n"+
+				"Resp(ms) - average response time in ms\n"+
+				"2xx - number of 2xx responses\n"+
+				"3xx - number of 3xx responses\n"+
+				"4xx - number of 4xx responses\n"+
+				"5xx - number of 5xx responses\n"+
+				"GETs - number of GET requests\n"+
+				"PUTs - number of PUT requests\n"+
+				"POSTs - number of POST requests\n"+
+				"DELETEs - number of DELETE requests")
+
 		}
 	}
 	if common.ShowToggleView {
@@ -140,8 +156,16 @@ func refreshViewContent(gui *gocui.Gui) {
 
 	if summaryView != nil {
 		summaryView.Clear()
-		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n",
-			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9))
+		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s, Total envelopes: %s (%s/s)\n"+
+			"Total Routes: %s, Total requests:%s, 2xx:%s, 3xx:%s, 4xx:%s, 5xx:%s",
+			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9), util.GetFormattedUnit(common.TotalEnvelopes), util.GetFormattedUnit(common.TotalEnvelopesPerSec),
+			util.GetFormattedUnit(float64(len(RouteMetricMap))),
+			util.GetFormattedUnit(TotalReqs),
+			util.GetFormattedUnit(Total2xx),
+			util.GetFormattedUnit(Total3xx),
+			util.GetFormattedUnit(Total4xx),
+			util.GetFormattedUnit(Total5xx),
+		)
 	}
 	if mainView != nil {
 		mainView.Clear()
@@ -149,14 +173,15 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "Routes"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %7s %5s %5s %5s %5s %5s %5s %5s %7s  %s\n", common.ColorYellow,
-			"LASTSEEN", "Route", "Req Tot", "2xx", "3xx", "4xx", "5xx", "GETs", "PUTs", "POSTs", "DELETEs", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %-60s %7s %8s %5s %5s %5s %5s %5s %5s %5s %7s  %s\n", common.ColorYellow,
+			"LASTSEEN", "Route", "Req Tot", "Resp(ms)", "2xx", "3xx", "4xx", "5xx", "GETs", "PUTs", "POSTs", "DELETEs", common.ColorReset))
 		for _, pairlist := range sortedBy(RouteMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-60s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%7s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%-60s%s %s%7s%s %s%8s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%7s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					routeColor, util.TruncateString(pairlist.Value.Route, 60), common.ColorReset,
 					rTotColor, util.GetFormattedUnit(pairlist.Value.RTotal), common.ColorReset,
+					respColor, util.GetFormattedUnit(pairlist.Value.TotalRespTime/pairlist.Value.RTotal/1024/1024), common.ColorReset,
 					r2xxColor, util.GetFormattedUnit(pairlist.Value.R2xx), common.ColorReset,
 					r3xxColor, util.GetFormattedUnit(pairlist.Value.R3xx), common.ColorReset,
 					r4xxColor, util.GetFormattedUnit(pairlist.Value.R4xx), common.ColorReset,

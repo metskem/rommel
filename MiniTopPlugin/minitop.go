@@ -108,6 +108,12 @@ func startMT(cliConnection plugin.CliConnection) {
 		}
 	}
 
+	type metricOnIPs struct {
+		IPs map[string]bool
+	}
+	metricCounts := make(map[string]metricOnIPs)
+	highestCount := 0
+
 	go func() {
 		for {
 			for _, envelope := range envelopeStream() {
@@ -119,6 +125,8 @@ func startMT(cliConnection plugin.CliConnection) {
 				index := envelope.Tags[apps.TagAppInstanceId]
 				appguid := envelope.Tags[apps.TagAppId]
 				var key string
+				//
+				// type Log metrics
 				if envelopeLog := envelope.GetLog(); envelopeLog != nil {
 					key = appguid + "/" + index
 					if envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRep || envelope.Tags[apps.TagOrigin] == apps.TagOriginValueRtr {
@@ -187,6 +195,26 @@ func startMT(cliConnection plugin.CliConnection) {
 								metricValues.Tags = make(map[string]float64)
 								vms.CellMetricMap[key] = metricValues
 							}
+
+							for metricName, _ := range metrics {
+								if metricOnIP, found := metricCounts[metricName]; !found {
+									metricOnIP = metricOnIPs{IPs: make(map[string]bool)}
+									metricOnIP.IPs[key] = true
+									metricCounts[metricName] = metricOnIP
+								} else {
+									if _, found2 := metricOnIP.IPs[key]; !found2 {
+										metricOnIP.IPs[key] = true
+										metricCounts[metricName] = metricOnIP
+									}
+								}
+							}
+							for metricName, metricOnIP := range metricCounts {
+								if len(metricOnIP.IPs) > highestCount {
+									highestCount = len(metricOnIP.IPs)
+									util.WriteToFile(fmt.Sprintf("highestCount: %d, highestKey: %s", highestCount, metricName))
+								}
+							}
+
 							for _, metricName := range vms.MetricNames {
 								value := metrics[metricName].GetValue()
 								if value != 0 {
@@ -197,15 +225,13 @@ func startMT(cliConnection plugin.CliConnection) {
 							metricValues.Job = envelope.Tags[vms.TagJob]
 							metricValues.LastSeen = time.Now()
 							vms.CellMetricMap[key] = metricValues
+							vms.CalculateTotals()
 						}
 					}
 				}
-				// type counter metrics
+				//
+				// type Counter metrics
 				if counter := envelope.GetCounter(); counter != nil {
-					//if _, ok := countersMap[counter.Name]; !ok {
-					//	countersMap[counter.Name] = counter.Name
-					//	util.WriteToFile(fmt.Sprintf("%s: %d/%d [%s, %s, %s, %s]", counter.Name, counter.Delta, counter.Total, envelope.Tags[vms.TagOrigin], envelope.Tags[vms.TagJob], envelope.Tags[vms.TagIP], envelope.Tags[apps.TagAppName]))
-					//}
 					key = envelope.Tags[vms.TagIP]
 					if envelope.Tags[vms.TagIP] != "" {
 						// if key not in metricMap, add it
@@ -229,10 +255,8 @@ func startMT(cliConnection plugin.CliConnection) {
 						vms.CellMetricMap[key] = metricValues
 					}
 				}
-				// type counter metrics
 				//
-				//  a new URI view, showing uri (or just hostname), with req count, by status code
-				//  a new remoteClient view, showing remote client IP, with req count, by status code
+				// type Timer metrics
 				if timer := envelope.GetTimer(); timer != nil && timer.Name == "http" {
 					if envelope.Tags[routes.TagUri] != "" {
 						if Url, err := url.Parse(envelope.Tags[routes.TagUri]); err == nil {
@@ -242,30 +266,31 @@ func startMT(cliConnection plugin.CliConnection) {
 								routeMetric = routes.RouteMetric{Route: key}
 							}
 							routeMetric.LastSeen = time.Now()
-							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "2") {
+							switch envelope.Tags[routes.TagStatusCode][:1] {
+							case "2":
 								routeMetric.R2xx++
-							}
-							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "3") {
+								routes.Total2xx++
+							case "3":
 								routeMetric.R3xx++
-							}
-							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "4") {
+								routes.Total3xx++
+							case "4":
 								routeMetric.R4xx++
-							}
-							if strings.HasPrefix(envelope.Tags[routes.TagStatusCode], "5") {
+								routes.Total4xx++
+							case "5":
 								routeMetric.R5xx++
+								routes.Total5xx++
 							}
-							if envelope.Tags[routes.TagMethod] == "GET" {
+							switch envelope.Tags[routes.TagMethod] {
+							case "GET":
 								routeMetric.GETs++
-							}
-							if envelope.Tags[routes.TagMethod] == "PUT" {
+							case "PUT":
 								routeMetric.PUTs++
-							}
-							if envelope.Tags[routes.TagMethod] == "POST" {
+							case "POST":
 								routeMetric.POSTs++
-							}
-							if envelope.Tags[routes.TagMethod] == "DELETE" {
+							case "DELETE":
 								routeMetric.DELETEs++
 							}
+							routes.TotalReqs++
 							routeMetric.RTotal++
 							routeMetric.TotalRespTime = routeMetric.TotalRespTime + float64(timer.Stop) - float64(timer.Start)
 							routes.RouteMetricMap[key] = routeMetric
@@ -331,6 +356,10 @@ func startCui() {
 		util.WriteToFileDebug("starting main UI refresh loop")
 		gui.SetManager(vms.NewVMView()) // we startup with the VMView
 		for {
+			totalEnvelopesPrev := common.TotalEnvelopes
+			totalEnvelopesRepPrev := common.TotalEnvelopesRep
+			totalEnvelopesRtrPrev := common.TotalEnvelopesRtr
+
 			if common.ActiveView == common.AppView || common.ActiveView == common.AppInstanceView {
 				apps.SetKeyBindings(gui)
 				common.SetKeyBindings(gui)
@@ -359,6 +388,9 @@ func startCui() {
 				}
 			}
 			time.Sleep(time.Duration(conf.IntervalSecs) * time.Second)
+			common.TotalEnvelopesPerSec = (common.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
+			common.TotalEnvelopesRepPerSec = (common.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
+			common.TotalEnvelopesRtrPerSec = (common.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
 		}
 	}()
 

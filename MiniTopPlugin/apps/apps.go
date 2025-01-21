@@ -91,9 +91,9 @@ func (a *AppView) Layout(g *gocui.Gui) error {
 
 func ShowView(gui *gocui.Gui) {
 	colorSortedColumn()
-	totalEnvelopesPrev := common.TotalEnvelopes
-	totalEnvelopesRepPrev := common.TotalEnvelopesRep
-	totalEnvelopesRtrPrev := common.TotalEnvelopesRtr
+	//totalEnvelopesPrev := common.TotalEnvelopes
+	//totalEnvelopesRepPrev := common.TotalEnvelopesRep
+	//totalEnvelopesRtrPrev := common.TotalEnvelopesRtr
 
 	// update memory summaries
 	var totalMemUsed, totalMemAllocated, totalLogRtUsed float64
@@ -115,9 +115,9 @@ func ShowView(gui *gocui.Gui) {
 		return nil
 	})
 
-	common.TotalEnvelopesPerSec = (common.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
-	common.TotalEnvelopesRepPerSec = (common.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
-	common.TotalEnvelopesRtrPerSec = (common.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
+	//common.TotalEnvelopesPerSec = (common.TotalEnvelopes - totalEnvelopesPrev) / float64(conf.IntervalSecs)
+	//common.TotalEnvelopesRepPerSec = (common.TotalEnvelopesRep - totalEnvelopesRepPrev) / float64(conf.IntervalSecs)
+	//common.TotalEnvelopesRtrPerSec = (common.TotalEnvelopesRtr - totalEnvelopesRtrPrev) / float64(conf.IntervalSecs)
 }
 
 func showFilterView(g *gocui.Gui, v *gocui.View) error {

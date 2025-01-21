@@ -35,6 +35,7 @@ const (
 	sortByAIELRL
 	sortByNzlIngr
 	sortByNzlEgr
+	sortByAvgEnvlps
 )
 
 var (
@@ -61,6 +62,7 @@ var (
 	AIELRLColor                            = common.ColorWhite
 	NzlIngrColor                           = common.ColorWhite
 	NzlEgrColor                            = common.ColorWhite
+	avgEnvlpsColor                         = common.ColorWhite
 	activeSortField              SortField = sortByIP
 )
 
@@ -98,6 +100,7 @@ func colorSortedColumn() {
 	AIELRLColor = common.ColorWhite
 	NzlIngrColor = common.ColorWhite
 	NzlEgrColor = common.ColorWhite
+	avgEnvlpsColor = common.ColorWhite
 	switch activeSortField {
 	case sortByLastSeen:
 		common.LastSeenColor = common.ColorBlue
@@ -149,6 +152,8 @@ func colorSortedColumn() {
 		NzlEgrColor = common.ColorBlue
 	case sortByNzlIngr:
 		NzlIngrColor = common.ColorBlue
+	case sortByAvgEnvlps:
+		avgEnvlpsColor = common.ColorBlue
 	}
 	util.WriteToFileDebug(fmt.Sprintf("colorSortedColumn VMs, activeSortField: %d", activeSortField))
 }
@@ -231,6 +236,8 @@ func (p PairList) Less(i, j int) bool {
 		return p[i].Value.Tags[metricNzlEgr] < p[j].Value.Tags[metricNzlEgr]
 	case sortByNzlIngr:
 		return p[i].Value.Tags[metricNzlIngr] < p[j].Value.Tags[metricNzlIngr]
+	case sortByAvgEnvlps:
+		return p[i].Value.Tags[metricAvgEnvlps] < p[j].Value.Tags[metricAvgEnvlps]
 	}
 	return p[i].Value.Tags[metricAge] > p[j].Value.Tags[metricAge] // default
 }
@@ -262,7 +269,7 @@ func passFilter(pairList Pair) bool {
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortByNzlEgr {
+	if activeSortField != sortByAvgEnvlps {
 		activeSortField++
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowRight VMs, activeSortField: %d", activeSortField))

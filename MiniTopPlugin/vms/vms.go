@@ -45,6 +45,7 @@ var (
 	metricAIELRL           = "AppInstanceExceededLogRateLimitCount"
 	metricNzlEgr           = "nozzle_egress"
 	metricNzlIngr          = "nozzle_ingress"
+	metricAvgEnvlps        = "average_envelopes"
 	//metricDopplerConnections = "doppler_connections"
 	//metricActiveDrains       = "active_drains"
 	metricNumCPUS   = "numCPUS"
@@ -53,7 +54,14 @@ var (
 	metric3xx       = "responses.3xx"
 	metric4xx       = "responses.4xx"
 	metric5xx       = "responses.5xx"
-	MetricNames     = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx, metricAIELRL, metricNzlIngr, metricNzlEgr}
+	MetricNames     = []string{TagJob, TagIP, metricAge, metricUpTime, metricCapacityAllocatedMemory, metricContainerUsageMemory, metricCapacityTotalDisk, metricContainerUsageDisk, metricContainerCount, metricCapacityTotalMemory, metricIPTablesRuleCount, metricOverlayTxBytes, metricOverlayRxBytes, metricHTTPRouteCount, metricOverlayRxDropped, metricOverlayTxDropped, metricNumCPUS, metricResponses, metric2xx, metric3xx, metric4xx, metric5xx, metricAIELRL, metricNzlIngr, metricNzlEgr, metricAvgEnvlps}
+	TotalCPU        float64
+	TotalMem        float64
+	TotalMemAlloc   float64
+	TotalMemUsd     float64
+	TotalDisk       float64
+	TotalDiskUsd    float64
+	TotalCntnrs     float64
 )
 
 func SetKeyBindings(gui *gocui.Gui) {
@@ -199,7 +207,8 @@ func layout(g *gocui.Gui) (err error) {
 				"5XX - the number of HTTP 5xx responses\n"+
 				"AIELRL - the number of times an app instance exceeded the log rate limit\n"+
 				"NzlIngr - the number of bytes ingressed by the nozzle\n"+
-				"NzlEgr - the number of bytes egressed by the nozzle")
+				"NzlEgr - the number of bytes egressed by the nozzle\n",
+				"AvgEnvlps - the average number of envelopes per second")
 		}
 	}
 	if common.ShowToggleView {
@@ -214,8 +223,18 @@ func refreshViewContent(gui *gocui.Gui) {
 
 	if summaryView != nil {
 		summaryView.Clear()
-		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s\n",
-			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9))
+		_, _ = fmt.Fprintf(summaryView, "Target: %s, Nozzle Uptime: %s, Total envelopes: %s (%s/s)\n"+
+			"Total VMs: %d, Reported CPU: %.0f\n"+
+			"Diego-cells:  Total Mem: %s, Total MemAlloc: %s, Total MemUsd: %s, Total Disk: %s, Total DiskUsd: %s, Total Cntnrs: %s",
+			conf.ApiAddr, util.GetFormattedElapsedTime((time.Now().Sub(common.StartTime)).Seconds()*1e9), util.GetFormattedUnit(common.TotalEnvelopes), util.GetFormattedUnit(common.TotalEnvelopesPerSec),
+			len(CellMetricMap),
+			TotalCPU,
+			util.GetFormattedUnit(1024*1024*TotalMem),
+			util.GetFormattedUnit(1024*1024*TotalMemAlloc),
+			util.GetFormattedUnit(1024*1024*TotalMemUsd),
+			util.GetFormattedUnit(1024*1024*TotalDisk),
+			util.GetFormattedUnit(1024*1024*TotalDiskUsd),
+			util.GetFormattedUnit(TotalCntnrs))
 	}
 	if mainView != nil {
 		mainView.Clear()
@@ -223,11 +242,11 @@ func refreshViewContent(gui *gocui.Gui) {
 		defer common.MapLock.Unlock()
 		lineCounter := 0
 		mainView.Title = "VMs"
-		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %13s %8s %7s %10s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %6s %6s %6s %6s %7s %7s %7s %s\n", common.ColorYellow,
-			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "TOT_REQ", "2XX", "3XX", "4XX", "5XX", "AIELRL", "NzlIngr", "NzlEgr", common.ColorReset))
+		_, _ = fmt.Fprint(mainView, fmt.Sprintf("%s%8s %13s %-14s %11s %7s %7s %9s %6s %7s %7s %7s %5s %5s %5s %6s %8s %8s %6s %5s %5s %5s %5s %7s %7s %6s %8s %s\n", common.ColorYellow,
+			"LASTSEEN", "Job", "IP", "UpTime", "NumCPU", "MemTot", "MemAlloc", "MemUsd", "DiskTot", "DiskUsd", "CntrCnt", "IPTR", "OVTX", "OVRX", "HTTPRC", "OVRXDrop", "OVTXDrop", "TOT_REQ", "2XX", "3XX", "4XX", "5XX", "AIELRL", "NzlIngr", "NzlEgr", "AvgEnvlp", common.ColorReset))
 		for _, pairlist := range sortedBy(CellMetricMap, common.ActiveSortDirection, activeSortField) {
 			if passFilter(pairlist) {
-				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%13s%s %s%8s%s %s%7s%s %s%10s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%7s%s %s%6s%s %s%6s%s %s%6s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s\n",
+				_, _ = fmt.Fprintf(mainView, "%s%8s%s %s%13s%s %s%-14s%s %s%11s%s %s%7s%s %s%7s%s %s%9s%s %s%6s%s %s%7s%s %s%7s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%6s%s %s%8s%s %s%8s%s %s%7s%s %s%5s%s %s%5s%s %s%5s%s %s%5s%s %s%7s%s %s%7s%s %s%6s%s %s%8s%s\n",
 					common.LastSeenColor, util.GetFormattedElapsedTime(float64(time.Since(pairlist.Value.LastSeen).Nanoseconds())), common.ColorReset,
 					JobColor, util.TruncateString(pairlist.Value.Job, 13), common.ColorReset,
 					common.IPColor, pairlist.Value.IP, common.ColorReset,
@@ -253,6 +272,7 @@ func refreshViewContent(gui *gocui.Gui) {
 					AIELRLColor, util.GetFormattedUnit(pairlist.Value.Tags[metricAIELRL]), common.ColorReset,
 					NzlIngrColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNzlEgr]), common.ColorReset,
 					NzlEgrColor, util.GetFormattedUnit(pairlist.Value.Tags[metricNzlEgr]), common.ColorReset,
+					avgEnvlpsColor, util.GetFormattedUnit(pairlist.Value.Tags[metricAvgEnvlps]), common.ColorReset,
 				)
 				lineCounter++
 				if lineCounter > maxY-7 {
@@ -293,5 +313,24 @@ func mkEvtHandler(ch rune) func(g *gocui.Gui, v *gocui.View) error {
 			}
 		}
 		return nil
+	}
+}
+
+func CalculateTotals() {
+	TotalCPU = 0
+	TotalMemAlloc = 0
+	TotalMemUsd = 0
+	TotalMem = 0
+	TotalDisk = 0
+	TotalDiskUsd = 0
+	TotalCntnrs = 0
+	for _, cellMetric := range CellMetricMap {
+		TotalCPU = TotalCPU + cellMetric.Tags[metricNumCPUS]
+		TotalMem = TotalMem + cellMetric.Tags[metricCapacityTotalMemory]
+		TotalMemAlloc = TotalMemAlloc + cellMetric.Tags[metricCapacityAllocatedMemory]
+		TotalMemUsd = TotalMemUsd + cellMetric.Tags[metricContainerUsageMemory]
+		TotalDisk = TotalDisk + cellMetric.Tags[metricCapacityTotalDisk]
+		TotalDiskUsd = TotalDiskUsd + cellMetric.Tags[metricContainerUsageDisk]
+		TotalCntnrs = TotalCntnrs + cellMetric.Tags[metricContainerCount]
 	}
 }

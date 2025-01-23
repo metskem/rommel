@@ -111,7 +111,7 @@ func SetShowToggleView(g *gocui.Gui, v *gocui.View) error {
 
 func ShowToggleViewLayout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if _, err := g.SetView("ToggleView", maxX/2-5, maxY/2-3, maxX/2+15, maxY/2+2, byte(0)); err != nil &&
+	if _, err := g.SetView("ToggleView", maxX/2-5, maxY/2-3, maxX/2+28, maxY/2+2, byte(0)); err != nil &&
 		!errors.Is(err, gocui.ErrUnknownView) {
 		return err
 	} else {
@@ -123,8 +123,8 @@ func ShowToggleViewLayout(g *gocui.Gui) error {
 		} else {
 			lines[0] = []string{"", "VM View", ""}
 			lines[1] = []string{"", "Application View", ""}
-			lines[2] = []string{"", "App Instance View", ""}
-			lines[3] = []string{"", "Route View", ""}
+			lines[2] = []string{"", "Application Instance View", ""}
+			lines[3] = []string{"", "Route View (-r option required)", ""}
 
 			for i := 0; i < len(lines); i++ {
 				if i == currentTogglePosition {

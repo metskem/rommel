@@ -29,10 +29,14 @@ var (
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeInstancesSortField != sortBySpace {
+	if activeInstancesSortField == sortBySpace {
+		activeInstancesSortField = sortByAppName
+	} else {
 		activeInstancesSortField++
 	}
-	if activeAppsSortField != sortBySpace {
+	if activeAppsSortField == sortBySpace {
+		activeAppsSortField = sortByAppName
+	} else {
 		activeAppsSortField++
 	}
 	// when in instance view mode, there is no Ix column, so skip it
@@ -54,10 +58,14 @@ func arrowRight(g *gocui.Gui, v *gocui.View) error {
 func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeInstancesSortField != sortByAppName {
+	if activeInstancesSortField == sortByAppName {
+		activeInstancesSortField = sortBySpace
+	} else {
 		activeInstancesSortField--
 	}
-	if activeAppsSortField != sortByAppName {
+	if activeAppsSortField == sortByAppName {
+		activeAppsSortField = sortBySpace
+	} else {
 		activeAppsSortField--
 	}
 	// when in instance view mode, there is no Ix column, so skip it

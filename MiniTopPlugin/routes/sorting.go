@@ -150,7 +150,9 @@ func colorSortedColumn() {
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortByDELETEs {
+	if activeSortField == sortByDELETEs {
+		activeSortField = sortByLastSeen
+	} else {
 		activeSortField++
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowRight Routes, activeSortField: %d", activeSortField))
@@ -161,7 +163,9 @@ func arrowRight(g *gocui.Gui, v *gocui.View) error {
 func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortByLastSeen {
+	if activeSortField == sortByLastSeen {
+		activeSortField = sortByDELETEs
+	} else {
 		activeSortField--
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowLeft Routes, activeSortField: %d", activeSortField))

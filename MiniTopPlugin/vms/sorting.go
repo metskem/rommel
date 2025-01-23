@@ -269,7 +269,9 @@ func passFilter(pairList Pair) bool {
 func arrowRight(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortByAvgEnvlps {
+	if activeSortField == sortByAvgEnvlps {
+		activeSortField = sortByLastSeen
+	} else {
 		activeSortField++
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowRight VMs, activeSortField: %d", activeSortField))
@@ -280,7 +282,9 @@ func arrowRight(g *gocui.Gui, v *gocui.View) error {
 func arrowLeft(g *gocui.Gui, v *gocui.View) error {
 	_ = g // get rid of compiler warning
 	_ = v // get rid of compiler warning
-	if activeSortField != sortByLastSeen {
+	if activeSortField == sortByLastSeen {
+		activeSortField = sortByAvgEnvlps
+	} else {
 		activeSortField--
 	}
 	util.WriteToFileDebug(fmt.Sprintf("arrowLeft VMs, activeSortField: %d", activeSortField))
